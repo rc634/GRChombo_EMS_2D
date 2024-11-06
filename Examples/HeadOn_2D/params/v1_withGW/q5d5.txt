@@ -1,0 +1,136 @@
+verbosity = 0
+chk_prefix = /home/dc-wong1/data/dc-wong1/BBH/HeadOn/2D/v1_withGW/q5d5/HeadOn2D_
+plot_prefix = /home/dc-wong1/data/dc-wong1/BBH/HeadOn/2D/v1_withGW/q5d5/HeadOn2DPlot_
+extraction_prefix = /home/dc-wong1/data/dc-wong1/BBH/HeadOn/2D/v1_withGW/q5d5/HeadOn2D_
+restart_file = /home/dc-wong1/data/dc-wong1/BBH/HeadOn/2D/v1_withGW/q5d5/HeadOn2D_002000.2d.hdf5
+
+# Set up grid spacings and regrid params
+N1 = 128  #Need to be multiples of the block factor
+N2 = 128 #Need to be multiples of the block factor
+L = 512
+
+center = 256 0 # should be L/2
+
+#Grid setup
+#affected level:     1    2    3    4    5   6    7    8    9   10   11
+regrid_thresholds =  0.025   0.025   0.025   0.025   0.025  0.025  0.025  0.2  0.1 0.1   1. 
+regrid_interval =     1    1    1    1    1   320  640  1280 2560 2560 2560
+
+chiTagMultiplier = 0
+KTagMultiplier = 100
+gammaTagMultiplier = 0
+
+max_level = 7
+ref_ratio = 2 2 2 2 2 2 2 2 2 2 2 2 2 2 
+max_grid_size = 16  #Gives max box size
+block_factor = 16    #Gives min box size
+#fill_ratio = 0.3 #from t=130
+
+## General gauge parameters
+## Lapse
+#initial_lapse = 0 # initial lapse
+#lapse_coeff = 2
+#lapse_advec_coeff = 1
+#
+## Shift
+#initial_shift = 0 # initial shift
+#shift_advec_coeff = 0
+#shift_Gamma_coeff = 0.75
+#eta = 1
+
+#boundaries and periodicity of grid
+#Periodic directions - 0 = false, 1 = true
+isPeriodic = 0 0 
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective
+# (see BoundaryConditions.hpp for details)
+hi_boundary = 1 1
+lo_boundary = 1 2
+
+# if reflective boundaries selected, must set
+# parity of all vars (in order given by UserVariables.hpp)
+# 0 = even
+# 1,2 = odd x,y
+# 3 = odd xy
+vars_parity            = 0 0 3 0 0   #chi, hij and hww
+                         0 0 3 0 0   #K and Aij
+                         0 1 2 0 0      #Theta, Gamma and Gamma_Ref
+                         0 1 2 1 2 0 0     #lapse shift shift_Ref and B
+                         0 1 2           #Ham and Mom
+                         0 0
+
+# if sommerfeld boundaries selected, must select 
+# asymptotic values (in order given by UserVariables.hpp)
+vars_asymptotic_values = 1.0 1.0 0.0 1.0 1.0 #chi, hij and hww
+                         0.0 0.0 0.0 0.0 0.0 #K, Aij and Aww
+                         0.0 0.0 0.0 0.0 0.0     #Theta, Gamma and Gamma_Ref
+                         1.0 0.0 0.0 0.0 0.0 0.0 0.0    #lapse shift shift_Ref and B
+                         0.0 0.0 0.0                 #Ham and Mom
+                         0 0
+
+# for sommerfeld boundaries, can also change the radial decay exponent assumed
+# for outgoing waves for all variables (in order given by UserVariables.hpp).
+# The default is 1.0.
+# chi, hij, etc.: D/2-1
+# K, Aij, etc.: D/2
+vars_radial_decay_exponents = 1 1 1 1 1 #chi, hij, hww
+                              2 2 2 2 2 #K, Aij, Aww
+                              1 1 1     #Theta, Gamma and Gamma_Ref
+                              1 1 1 1 1  #lapse shift shift_Ref and B
+                              1 1 1         #Ham and Mom
+
+# Time stepping
+checkpoint_interval = 50 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
+plot_interval = 5
+num_plot_vars = 3
+plot_vars = chi Weyl4_Re Ham 
+dt_multiplier = 0.05 #0.03125 # dt will be dx*dt_multiplier on each grid level
+
+stop_time = 2000
+max_steps = 4000
+
+# CCZ4 parameters
+kappa1 = 0.5
+kappa2 = 0
+kappa3 = 1.
+covariantZ4 = 1 # 0: default. 1: dampk1 -> dampk1/lapse
+
+#coefficient for KO numerical dissipation
+sigma = 0.3
+
+# extraction params
+# default of extraction_center is center, uncomment to change
+#extraction_center = 256 256 256
+activate_extraction = 1
+num_extraction_radii = 2
+extraction_radii = 120 160
+extraction_levels = 1 1
+num_points_phi = 24
+num_points_theta = 36
+num_modes = 12
+modes = 2 0 # l m for spherical harmonics
+        2 1
+        2 2
+	3 0
+	3 1
+	3 2
+	3 3
+        4 0
+        4 1
+        4 2
+        4 3
+        4 4
+
+# BH params, use puncture tracking to
+# ensure horizons resolved
+track_punctures = 0
+puncture_tracking_level = 0
+massA = 0.5
+offsetA = 55.0 0.0
+momentumA = 0.0 0.0
+massB = 2.75
+offsetB = -10.0 0.0 
+momentumB = 0.0 0.0
+
+
+
