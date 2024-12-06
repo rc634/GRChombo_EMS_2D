@@ -7,6 +7,16 @@
 #error "This file should only be included through Weyl4.hpp"
 #endif
 
+// Initialize new 3D variables to pass into EB function.
+#ifndef FOR3_LOOP_DEFINED_WEYL_
+#define FOR3_LOOP_DEFINED_WEYL_
+#define FOR_3D(IDX) for (int IDX = 0; IDX < 3; ++IDX)
+#define FOR_3D(IDX1, IDX2) FOR_3D(IDX1) FOR_3D(IDX2)
+#define FOR_3D(IDX1, IDX2, IDX3) FOR_3D(IDX1, IDX2) FOR_3D(IDX3)
+#define FOR_3D(IDX1, IDX2, IDX3, IDX4) FOR_3D(IDX1, IDX2) FOR_3D(IDX3, IDX4)
+#endif
+
+
 #ifndef WEYL4_IMPL_HPP_
 #define WEYL4_IMPL_HPP_
 
@@ -17,12 +27,7 @@
 // reconstruct the normal CCZ4Cartoon variables in 3D,
 // then use those to compute EB fields and Psi4.
 
-// Initialize new 3D variables to pass into EB function.
 
-#define FOR_3D(IDX) for (int IDX = 0; IDX < 3; ++IDX)
-#define FOR_3D(IDX1, IDX2) FOR_3D(IDX1) FOR_3D(IDX2)
-#define FOR_3D(IDX1, IDX2, IDX3) FOR_3D(IDX1, IDX2) FOR_3D(IDX3)
-#define FOR_3D(IDX1, IDX2, IDX3, IDX4) FOR_3D(IDX1, IDX2) FOR_3D(IDX3, IDX4)
 
 template <class data_t>
 CCZ4vars3D<data_t> Weyl4::load_ccz4(const Vars<data_t> &vars,

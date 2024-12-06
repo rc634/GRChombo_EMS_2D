@@ -15,18 +15,18 @@
 #include "TensorAlgebra.hpp"
 #include "VarsTools.hpp"
 
-template <class potential_t>
-inline Constraints<potential_t>::Constraints(
-    double dx, potential_t a_potential, double a_G_Newton,
+template <class coupling_t>
+inline Constraints<coupling_t>::Constraints(
+    double dx, coupling_t a_coupling, double a_G_Newton,
     double cosmological_constant /*defaulted*/)
-    : m_deriv(dx), m_potential(a_potential), m_G_Newton(a_G_Newton),
+    : m_deriv(dx), m_coupling(a_coupling), m_G_Newton(a_G_Newton),
       m_cosmological_constant(cosmological_constant), m_dx(dx)
 {
 }
 
-template <class potential_t>
+template <class coupling_t>
 template <class data_t>
-void Constraints<potential_t>::compute(Cell<data_t> current_cell) const
+void Constraints<coupling_t>::compute(Cell<data_t> current_cell) const
 {
     const auto vars = current_cell.template load_vars<Vars>();
     const auto d1 = m_deriv.template diff1<Vars>(current_cell);
@@ -66,11 +66,11 @@ void Constraints<potential_t>::compute(Cell<data_t> current_cell) const
     // current_cell.store_vars(out.Sww_TF, c_Sww_TF);
 }
 
-template <class potential_t>
+template <class coupling_t>
 template <class data_t, template <typename> class vars_t,
           template <typename> class diff2_vars_t>
-typename Constraints<potential_t>:: template constraints_t<data_t>
-Constraints<potential_t>::constraint_equations(
+typename Constraints<coupling_t>:: template constraints_t<data_t>
+Constraints<coupling_t>::constraint_equations(
     const vars_t<data_t> &vars, const vars_t<Tensor<1, data_t>> &d1,
     const diff2_vars_t<Tensor<2, data_t>> &d2,
     const double &cartoon_coord) const
@@ -144,12 +144,12 @@ Constraints<potential_t>::constraint_equations(
         }
     }
 
-    // Matter contributions
-    data_t V_of_phi = 0.0;
-    data_t dVdphi = 0.0;
-    m_potential.compute_potential(V_of_phi, dVdphi, vars);
-    
-    emtensorCartoon_t<data_t> emtensor = compute_SF_EM_tensor(vars, d1, h_UU, h_UU_ww, chris, nS, V_of_phi);
+    // Matter contributions - probably not needed
+    // data_t coupling =0., f_coupling=0., fprime=0.;
+    // m_coupling.compute_coupling(f_coupling, fprime, coupling, vars);
+
+    emtensorCartoon_t<data_t> emtensor = compute_EMS_EM_tensor(vars, d1, h_UU,
+                                               h_UU_ww, chris, nS, m_coupling);
     out.Ham += -16.0 * M_PI * m_G_Newton * emtensor.rho;
     FOR(i)
     {

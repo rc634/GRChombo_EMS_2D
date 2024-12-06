@@ -60,7 +60,7 @@ NPScalarMatrix_t<data_t> WeylOmScalar::compute_Weyl_Om(
     NPScalarMatrix_t<data_t> out;
 
     // Calculate null tetrads
-    const Tetrad_t<data_t> tetrad = compute_null_tetrad(vars, coords);
+    const Tetrad_cartoon_t<data_t> tetrad = compute_null_tetrad(vars, coords);
 
     Tensor<2, data_t> mvec = 0.;
     FOR(i)
@@ -143,11 +143,11 @@ NPScalarMatrix_t<data_t> WeylOmScalar::compute_Weyl_Om(
 // "Extraction of gravitational-wave energy in higher dimensional numerical
 // relativity using the Weyl tensor ", Cook and Sperhake
 template <class data_t>
-Tetrad_t<data_t>
+Tetrad_cartoon_t<data_t>
 WeylOmScalar::compute_null_tetrad(const Vars<data_t> &vars,
                                   const Coordinates<data_t> &coords) const
 {
-    Tetrad_t<data_t> out;
+    Tetrad_cartoon_t<data_t> out;
 
     // compute coords
     const data_t x = coords.x;

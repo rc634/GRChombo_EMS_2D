@@ -3,17 +3,18 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef EMSEXTRACTIONTAGGINGCRITERION_HPP_
-#define EMSEXTRACTIONTAGGINGCRITERION_HPP_
+#ifndef EMDEXTRACTIONTAGGINGCRITERION_HPP_
+#define EMDEXTRACTIONTAGGINGCRITERION_HPP_
 
 #include "Cell.hpp"
+// #include "EinsteinMaxwellScalarField.hpp" // not sure if need
 #include "Coordinates.hpp"
 #include "DimensionDefinitions.hpp"
 #include "FourthOrderDerivatives.hpp"
 #include "SimulationParametersBase.hpp"
 #include "Tensor.hpp"
 
-class EMSExtractionTaggingCriterion
+class EMDExtractionTaggingCriterion
 {
   protected:
     const double m_dx;
@@ -24,12 +25,14 @@ class EMSExtractionTaggingCriterion
     const double m_threshold_phi;
     const double m_threshold_chi;
 
+    template <class data_t>
+    using MatterVars =
+                  typename EinsteinMaxwellScalarField<>::template Vars<data_t>;
+
     // Vars object for chi
-    template <class data_t> struct TaggingVars
+    template <class data_t> struct Vars
     {
         data_t chi; //!< Conformal factor
-        data_t Pi;  //!< Scalar field momentum
-        data_t phi; //!< Scalar field
 
         template <typename mapping_function_t>
         void enum_mapping(mapping_function_t mapping_function)
@@ -37,13 +40,11 @@ class EMSExtractionTaggingCriterion
             using namespace VarsTools; // define_enum_mapping is part of
                                        // VarsTools
             define_enum_mapping(mapping_function, c_chi, chi);
-            define_enum_mapping(mapping_function, c_Pi, Pi);
-            define_enum_mapping(mapping_function, c_phi, phi);
         }
     };
 
   public:
-    EMSExtractionTaggingCriterion(
+    EMDExtractionTaggingCriterion(
         const double a_dx, const int a_level,
         const extraction_params_t a_params, const double a_threshold_A,
         const double a_threshold_phi, const double a_threshold_chi)
@@ -55,8 +56,10 @@ class EMSExtractionTaggingCriterion
     template <class data_t> void compute(Cell<data_t> current_cell) const
     {
 
-        const auto d1 = m_deriv.template diff1<TaggingVars>(current_cell);
-        const auto d2 = m_deriv.template diff2<TaggingVars>(current_cell);
+        const auto d1 = m_deriv.template diff1<MatterVars>(current_cell);
+        const auto d1chi = m_deriv.template diff1<Vars>(current_cell);
+        const auto d2 = m_deriv.template diff2<MatterVars>(current_cell);
+        const auto d2chi = m_deriv.template diff2<Vars>(current_cell);
 
         data_t d2_phi_ratio = 0.;
         data_t d2_chi_ratio = 0.;
@@ -75,8 +78,8 @@ class EMSExtractionTaggingCriterion
             //d2_A_ratio += mod_d2_A_ij / (abs_d1d1_A_ij + 1e-5);
             d2_phi_ratio += mod_d2_Pi_ij / (abs_d1d1_Pi_ij + 1e-5) +
                             mod_d2_phi_ij / (abs_d1d1_phi_ij + 1e-5);
-            d2_chi_ratio += d2.chi[i][j] * d2.chi[i][j] /
-                            (1e-2 + abs(d1.chi[i] * d1.chi[j]));
+            d2_chi_ratio += d2chi.chi[i][j] * d2chi.chi[i][j] /
+                            (1e-2 + abs(d1chi.chi[i] * d1chi.chi[j]));
         }
         data_t hack_coeff = 1.; // mega hacked
         data_t numerator = 0.3*pow(m_level,2) + 0.1*pow(m_level,3);
@@ -112,4 +115,4 @@ class EMSExtractionTaggingCriterion
     }
 };
 
-#endif /* EMSEXTRACTIONTAGGINGCRITERION_HPP_ */
+#endif /* EMDEXTRACTIONTAGGINGCRITERION_HPP_ */

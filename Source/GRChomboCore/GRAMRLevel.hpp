@@ -63,7 +63,7 @@ class GRAMRLevel : public AMRLevel, public InterpSource<>
     virtual void postTimeStep();
 
     /// things to do before tagging cells (e.g. filling ghosts)
-    virtual void preTagCells(double &a_maximum);
+    virtual void preTagCells();
 
     /// tag cells that need to be refined
     virtual void tagCells(IntVectSet &a_tags);
@@ -144,7 +144,16 @@ class GRAMRLevel : public AMRLevel, public InterpSource<>
 
     /// Computes which cells have insufficient resolution and should be tagged
     virtual void computeTaggingCriterion(FArrayBox &tagging_criterion,
-                                         const FArrayBox &current_state) = 0;
+                                         const FArrayBox &current_state)
+    {
+    }
+
+    /// Virtual function which tags cells for refinement based on current
+    /// evolution and diagnostic variables state
+    virtual void
+    computeTaggingCriterion(FArrayBox &tagging_criterion,
+                            const FArrayBox &current_state,
+                            const FArrayBox &current_state_diagnostics);
 
 #ifdef CH_USE_HDF5
     /// Things to do immediately before checkpointing

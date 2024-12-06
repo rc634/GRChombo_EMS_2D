@@ -8,23 +8,23 @@ verbosity = 0
 
 # location / naming of output files
 # output_path = "" # Main path for all files. Must exist!
-chk_prefix = chk/EMSBH_
+chk_prefix = chk/EMS_
 plot_prefix = plt/EMS_Plot_
-# restart_file = chk/SingleBH_000004.3d.hdf5
+# restart_file = chk/?
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
 checkpoint_interval = 20
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
 plot_interval = 10
-num_plot_vars = 2
-plot_vars = chi Ham
+num_plot_vars = 19
+plot_vars = chi K lapse h11 h12 h22 hww A11 phi Pi Bx Ex Lambda Xi Weyl4_Re Pheyl2_Re mod_F maxwell Ham
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
-hdf5_subpath = "hdf5"
-pout_subpath = "pout"
-data_subpath = "data"
+# hdf5_subpath = "hdf5"
+# pout_subpath = "pout"
+# data_subpath = "data"
 
 # change the name of output files
 # pout_prefix = "pout"
@@ -34,24 +34,17 @@ print_progress_only_to_rank_0 = 1
 # write_plot_ghosts = 0
 
 #################################################
-# Initial Data parameters
-
-mass = 1.
-offset = 0. 0. 0.
-momentum = 0.2 0.0 0.0 # speed if using the IsotropicBoostBH ID
-
-#################################################
 # Grid parameters
 
-# 'N' is the number of subdivisions in each direction of a cubic box
-# 'L' is the length of the longest side of the box, dx_coarsest = L/N
-# NB - If you use reflective BC and want to specify the subdivisions and side
-# of the box were there are no symmetries, specify 'N_full' and 'L_full' instead
-# NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
-# 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
-# NB - the N values need to be multiples of the block_factor
-N_full = 128
-L_full = 64
+# Set up grid spacings and regrid params
+# NB - the N values need to be multiples of block_factor
+N1 = 512
+N2 = 512
+N3 = 512
+
+# Length of longest box side, dx_coarsest = L/N(max)
+# NB if non cubic, this determines dx for all sides
+L = 128
 
 # Maximum number of times you can regrid above coarsest level
 max_level = 4 # There are (max_level+1) grids, so min is zero
@@ -59,17 +52,19 @@ max_level = 4 # There are (max_level+1) grids, so min is zero
 # Frequency of regridding at each level and thresholds on the tagging
 # Need one for each level except the top one, ie max_level items
 # Generally you do not need to regrid frequently on every level
-# Level Regridding:   0   1   2   3   4
-regrid_interval   =   1   2   4   8  16
-regrid_threshold  = 0.03
+# Level Regridding:   0 1 2 3 .....
+regrid_interval   =   1 0 0 0 0 0 0 0 0 0 0 0  0
+regrid_threshold_A = 6.
+regrid_threshold_phi = 0.3
+regrid_threshold_chi = 0.3
 
 # Max and min box sizes
-max_box_size = 16
+max_box_size = 32
 min_box_size = 16
 
 # tag_buffer_size = 3
-# grid_buffer_size = 8
-# fill_ratio = 0.7
+grid_buffer_size = 32
+fill_ratio = 0.7
 # num_ghosts = 3
 # center = 256.0 256.0 256.0 # defaults to center of the grid
 
@@ -77,30 +72,38 @@ min_box_size = 16
 # Boundary Conditions parameters
 
 # Periodic directions - 0 = false, 1 = true
-isPeriodic = 0 0 0
+isPeriodic = 0 0
 # if not periodic, then specify the boundary type
-# 0 = static, 1 = sommerfeld, 2 = reflective
+# 0 = static, 1 = sommerfeld, 2 = reflective, 3 interpoaltive
 # (see BoundaryConditions.hpp for details)
-hi_boundary = 1 1 1
-lo_boundary = 1 2 2
+hi_boundary = 1 1
+lo_boundary = 2 2
 
 # if reflective boundaries selected, must set
 # parity of all vars (in order given by UserVariables.hpp)
 # 0 = even
-# 1,2,3 = odd x, y, z
-# 4,5,6 = odd xy, yz, xz
-# 7     = odd xyz
-vars_parity            = 0 0 4 6 0 5 0    #chi and hij
-                         0 0 4 6 0 5 0    #K and Aij
-                         0 1 2 3          #Theta and Gamma
-                         0 1 2 3 1 2 3    #lapse shift and B
-vars_parity_diagnostic = 0 1 2 3          #Ham and Mom
-						 0 7 1 2 3		  # ADM M, J, Px, Py, Pz
+# 1,2 = odd x,y
+# 3 = odd xy
+# maybe 0 = even, 1,2,3 = odd x y z, 4,5,6 = odd xy, yz, zx, 7 = odd xyz
+vars_parity            = 0 0 4 0 0        #chi, hij and hww
+                         0 0 4 0 0        #K, Aij and Aww
+                         0 1 2            # Theta, Gamma_i
+                         0 1 2 1 2        # lapse shift and B_i
+                         0 0              # phi and Pi
+                         7 5 6 4          # B constraint and 3 B's
+                         1 2 0 0          # 3 E's and E constraint
+
+
+vars_parity_diagnostic = 0 0 0 0 0 1 2 0  # mod F to Mom total
+                         0 3 # weyl4 # THIS MIGHT BE 0,4 ? SEE PRE_EXISTING EXAMPLES
+                         0 3 # pheyl2
+                         0 0 # rho and rho ADM
+                         0 0 # Sx Sy
 
 # if sommerfeld boundaries selected, must select
 # non zero asymptotic values
 num_nonzero_asymptotic_vars = 5
-nonzero_asymptotic_vars = chi h11 h22 h33 lapse
+nonzero_asymptotic_vars = chi h11 h22 hww lapse
 nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 
 # if you are using extrapolating BC:
@@ -108,13 +111,46 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 # num_extrapolating_vars = -1
 # extrapolating_vars =
 
+
+#################################################
+# Initial data params (EMSBH)
+
+G_Newton = 1.0
+
+gridpoints = 50000 # resolution of initial data
+binary = false # make false for one object
+separation = 0.0 # separation in x
+# centre of the star - only uncomment if you want star off centre
+star_centre = 0 0 # ITS 2D IN THIS CODE!!!!!!
+# for reissner-nordstrom initial data, mass used in horizon finder initial guess too
+bh_charge = 0.7 # likely not the correct value but probably unused
+bh_mass = 1.0
+
+# Potential params
+# coupling is e^(-2*alpha*f) to maxwell part
+# f = f0 + f1 phi + f2 phi^2
+# set alpha = 0 for no coupling between scalar and maxwell
+ems_alpha = 0.0 # should be 1.0 here really for contraint satisfaction
+ems_f0 = 0.0
+ems_f1 = 0.0
+ems_f2 = -7.5398223686155035 # -251.32741228718345 # multiplicative difference of 4 pi from Fabrizio
+ems_data_path = "initial_data/id_alpha0.6_ctmr1.0187_fish_eye_t0.dat" # must be included, or will fail with default in pp.load()
+
+# spherical harmonic perturbation, thin gaussian shell at large radius, boosted inwards
+Ylm_amplitude = 0.0 # 0.001 # amplitude is ~1/r in flat space
+Ylm_thickness = 5.0 # gaussian standard deviation of shell thickness
+Ylm_r0 = 80.0 # initial radius of perturbation shell
+
+
+
 #################################################
 # Evolution parameters
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
 # stop_time = 10.0
-max_steps = 1
+# max_steps = 1
+stop_time = 100.
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
@@ -122,7 +158,7 @@ max_spatial_derivative_order = 4 # can be 4 or 6
 nan_check = 1
 
 # Lapse evolution
-lapse_advec_coeff = 1.0
+lapse_advec_coeff = 1.0 # 1 makes the lapse gauge 1+log slicing
 lapse_coeff = 2.0
 lapse_power = 1.0
 
@@ -139,7 +175,7 @@ kappa3 = 1.
 covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
 
 # coefficient for KO numerical dissipation
-sigma = 1.0
+sigma = 2.0 # 1.0
 
 # min_chi = 1.e-4
 # min_lapse = 1.e-4
@@ -148,19 +184,20 @@ sigma = 1.0
 # Extraction parameters
 
 activate_extraction = 1
-num_extraction_radii = 2
-extraction_radii = 20 30
-extraction_levels = 0 0
+num_extraction_radii = 1
+extraction_radii = 8.
+extraction_levels = 0
 num_points_phi = 72
 num_points_theta = 108
-# num_modes = 25
 # l m for spherical harmonics
-# modes = 2 0  2 1  2 2
-#         3 0  3 1  3 2  3 3
-#         4 0  4 1  4 2  4 3  4 4
-#         5 0  5 1  5 2  5 3  5 4  5 5
-#         6 0  6 1  6 2  6 3  6 4  6 5
-#         6 6
+num_modes = 7
+modes = 2 0
+        2 1
+        2 2
+        3 0
+        4 0
+        5 0
+        6 0
 
 # integral_file_prefix = "Weyl4_mode_"
 
@@ -168,15 +205,16 @@ num_points_theta = 108
 # extraction_subpath = "data/extraction" # directory for 'write_extraction = 1'
 # extraction_file_prefix = "Weyl4_extraction_"
 
+# NOTE TO SELF - DON"T UNDERSTAND THIS BIT YET
 # Extrapolation
-extraction_extrapolation_order = 2 # 2 or 3
-extraction_extrapolation_radii = 0 1
+# extraction_extrapolation_order = 2 # 2 or 3
+# extraction_extrapolation_radii = 0 1
 
 #################################################
 # Apparent Horizon Finder parameters
 
-AH_activate = 1
-AH_num_ranks = 4
+AH_activate = 0
+AH_num_ranks = 1
 AH_num_points_u = 41
 AH_num_points_v = 40
 AH_solve_interval = 1
@@ -209,3 +247,34 @@ AH_extra_vars = chi d1_chi
 # AH_coords_prefix = "coords_AH"
 
 #################################################
+
+# RealScalar extraction params (realscalar = rs)
+#default center to grid center, uncomment to change
+rs_extraction_center = 0 0 0
+activate_rs_extraction = 0
+rs_num_extraction_radii = 2
+rs_extraction_radii = 5. 10. # can use extraction_radius for one radius
+rs_extraction_levels = 0 0 # can use extraction_level for one radius
+rs_num_points_phi = 64 64
+rs_num_points_theta = 60 60
+rs_num_modes = 8
+rs_modes = 0 0
+           1 0
+           1 1
+           2 0
+           2 1
+           2 2
+           3 0
+           4 0
+
+# M and Q extraction params (mq)
+#default center to grid center, uncomment to change
+mq_extraction_center = 0 0 0
+activate_mq_extraction = 0
+mq_num_extraction_radii = 2
+mq_extraction_radii = 20. 40. # can use extraction_radius for one radius
+mq_extraction_levels = 0 0  # can use extraction_level for one radius
+mq_num_points_phi = 64 64
+mq_num_points_theta = 60 60
+mq_num_modes = 1
+mq_modes = 0 0

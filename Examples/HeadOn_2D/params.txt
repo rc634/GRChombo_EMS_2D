@@ -11,7 +11,7 @@ plot_prefix = HeadOn2DPlot_
 # 'L' is the length of the longest side of the box, dx_coarsest = L/N
 # NB - If you use reflective BC and want to specify the subdivisions and side
 # of the box were there are no symmetries, specify 'N_full' and 'L_full' instead
-# NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full', 
+# NB - if you have a non-cubic grid, you can specify 'N1' or 'N1_full',
 # 'N2' or 'N2_full' and 'N3' or 'N3_full' ( then dx_coarsest = L/N(max) )
 # NB - the N values need to be multiples of the block_factor
 N_full = 128
@@ -29,7 +29,7 @@ min_grid_size = 16
 
 #boundaries and periodicity of grid
 #Periodic directions - 0 = false, 1 = true
-isPeriodic = 0 0 
+isPeriodic = 0 0
 # if not periodic, then specify the boundary type
 # 0 = static, 1 = sommerfeld, 2 = reflective
 # (see BoundaryConditions.hpp for details)
@@ -43,7 +43,7 @@ lo_boundary = 1 2
 # 3 = odd xy
 vars_parity            = 0 0 3 0 0   #chi, hij and hww
                          0 0 3 0 0   #K and Aij
-                         0 1 2       #Theta, Gamma 
+                         0 1 2       #Theta, Gamma
                          0 1 2 0 0   #lapse shift and B
 vars_parity_diagnostic = 0 1 2       #Ham and Mom
                          0 3         #Weyl
@@ -59,7 +59,7 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 checkpoint_interval = 50
 plot_interval = 5
 num_plot_vars = 3
-plot_vars = chi Weyl4_Re Ham 
+plot_vars = chi Weyl4_Re Ham
 dt_multiplier = 0.25
 
 stop_time = 200
@@ -108,7 +108,7 @@ modes = 2 0 # l m for spherical harmonics
 track_punctures = 1
 puncture_tracking_level = 5
 massA = 0.5
-offsetA = 10.0 0.0 
+offsetA = 10.0 0.0
 momentumA = 0.0 0.0
 massB = 0.5
 offsetB = -10.0 0.0
@@ -120,10 +120,12 @@ AH_activate = 1
 AH_num_ranks = 4
 AH_num_points_u = 41
 AH_solve_interval = 10
+horizon_centre_1 = 0 0
+horizon_centre_2 = 0 0
 
 #AH_print_interval = 1
 #AH_track_center = true
-#AH_predict_origin = true
+#AH_predict_origin = false # was true before
 #AH_merger_search_factor = 1.
 #AH_merger_pre_factor = 1.
 #AH_level_to_run = 0

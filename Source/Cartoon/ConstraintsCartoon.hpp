@@ -21,7 +21,7 @@
 
 #include <array>
 
-template <class potential_t> class Constraints
+template <class coupling_t> class Constraints
 {
   public:
     /// CCZ4 variables
@@ -47,7 +47,7 @@ template <class potential_t> class Constraints
         data_t Sww_TF;
     };
 
-    Constraints(double dx, potential_t a_potential, double a_G_Newton,
+    Constraints(double dx, coupling_t a_coupling, double a_G_Newton,
                 double cosmological_constant = 0);
 
     template <class data_t> void compute(Cell<data_t> current_cell) const;
@@ -56,7 +56,7 @@ template <class potential_t> class Constraints
     const FourthOrderDerivatives m_deriv;
     double m_cosmological_constant;
     double m_dx;
-    potential_t m_potential;
+    coupling_t m_coupling;
     double m_G_Newton;
 
     template <class data_t, template <typename> class vars_t,

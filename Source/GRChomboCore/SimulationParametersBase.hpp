@@ -62,6 +62,14 @@ class SimulationParametersBase : public ChomboParameters
         pp.load("min_chi", min_chi, 1e-4);
         pp.load("min_lapse", min_lapse, 1e-4);
 
+        // directory to store data (extraction files, puncture data, constraint
+        // norms)
+        pp.load("data_subpath", data_path, std::string(""));
+        if (!data_path.empty() && data_path.back() != '/')
+            data_path += "/";
+        if (output_path != "./" && !output_path.empty())
+            data_path = output_path + data_path;
+
         // Extraction params
         pp.load("activate_extraction", activate_extraction, false);
 
@@ -158,16 +166,313 @@ class SimulationParametersBase : public ChomboParameters
             pp.load("integral_file_prefix",
                     extraction_params.integral_file_prefix,
                     std::string("Weyl4_mode_"));
+        }
 
-            if (pp.contains("extraction_extrapolation_order"))
+        ////////////
+        // PHEYL2 PARAMS
+        ////////////
+
+        pp.load("activate_em_extraction", activate_em_extraction, false);
+
+        if (activate_em_extraction)
+        {
+            pp.load("em_num_extraction_radii",
+                    pheyl2_extraction_params.num_extraction_radii, 1);
+
+            // Check for multiple extraction radii, otherwise load single
+            // radius/level (for backwards compatibility).
+            if (pp.contains("em_extraction_levels"))
             {
-                int extrapolation_order;
-                pp.load("extraction_extrapolation_order", extrapolation_order);
-                pp.load("extraction_extrapolation_radii",
-                        extraction_params.radii_idxs_for_extrapolation,
-                        extrapolation_order);
-                extraction_params.validate_extrapolation_radii();
+                pp.load("em_extraction_levels",
+                        pheyl2_extraction_params.extraction_levels,
+                        pheyl2_extraction_params.num_extraction_radii);
             }
+            else
+            {
+                pp.load("em_extraction_level", pheyl2_extraction_params.extraction_levels,
+                        1, 0);
+            }
+            if (pp.contains("em_extraction_radii"))
+            {
+                pp.load("em_extraction_radii", pheyl2_extraction_params.extraction_radii,
+                        pheyl2_extraction_params.num_extraction_radii);
+            }
+            else
+            {
+                pp.load("em_extraction_radius", pheyl2_extraction_params.extraction_radii,
+                        1, 0.1);
+            }
+
+            pp.load("em_num_points_phi", pheyl2_extraction_params.num_points_phi, 2);
+            pp.load("em_num_points_theta", pheyl2_extraction_params.num_points_theta, 5);
+            if (pheyl2_extraction_params.num_points_theta % 2 == 0)
+            {
+                pheyl2_extraction_params.num_points_theta += 1;
+                pout() << "Parameter: num_points_theta incompatible with "
+                          "Simpson's "
+                       << "rule so increased by 1.\n";
+            }
+            pp.load("em_extraction_center", pheyl2_extraction_params.center, center);
+
+            if (pp.contains("em_modes"))
+            {
+                pp.load("em_num_modes", pheyl2_extraction_params.num_modes);
+                std::vector<int> pheyl2_extraction_modes_vect(
+                    2 * pheyl2_extraction_params.num_modes);
+                pp.load("em_modes", pheyl2_extraction_modes_vect,
+                        2 * pheyl2_extraction_params.num_modes);
+                pheyl2_extraction_params.modes.resize(pheyl2_extraction_params.num_modes);
+                for (int i = 0; i < pheyl2_extraction_params.num_modes; ++i)
+                {
+                    pheyl2_extraction_params.modes[i].first =
+                        pheyl2_extraction_modes_vect[2 * i];
+                    pheyl2_extraction_params.modes[i].second =
+                        pheyl2_extraction_modes_vect[2 * i + 1];
+                }
+            }
+            else
+            {
+                // by default extraction (l,m) = (2,0), (2,1) and (2,2)
+                pheyl2_extraction_params.num_modes = 3;
+                pheyl2_extraction_params.modes.resize(3);
+                for (int i = 0; i < 3; ++i)
+                {
+                    pheyl2_extraction_params.modes[i].first = 2;
+                    pheyl2_extraction_params.modes[i].second = i;
+                }
+            }
+
+            pp.load("em_write_extraction", pheyl2_extraction_params.write_extraction,
+                    false);
+
+            std::string pheyl2_extraction_path;
+            if (pp.contains("em_extraction_subpath"))
+            {
+                pp.load("em_extraction_subpath", pheyl2_extraction_path);
+                if (!pheyl2_extraction_path.empty() && pheyl2_extraction_path.back() != '/')
+                    pheyl2_extraction_path += "/";
+                if (output_path != "./" && !output_path.empty())
+                    pheyl2_extraction_path = output_path + pheyl2_extraction_path;
+            }
+            else
+                pheyl2_extraction_path = data_path;
+
+            pheyl2_extraction_params.data_path = data_path;
+            pheyl2_extraction_params.extraction_path = pheyl2_extraction_path;
+
+            // default names to Weyl extraction
+            pp.load("em_extraction_file_prefix",
+                    pheyl2_extraction_params.extraction_file_prefix,
+                    std::string("Pheyl2_extraction_"));
+            pp.load("em_integral_file_prefix",
+                    pheyl2_extraction_params.integral_file_prefix,
+                    std::string("Pheyl2_mode_"));
+        }
+
+
+
+        ////////////
+        // REALSCALAR PARAMS
+        ////////////
+
+        pp.load("activate_rs_extraction", activate_rs_extraction, false);
+
+        if (activate_rs_extraction)
+        {
+            pp.load("rs_num_extraction_radii",
+                    realscalar_extraction_params.num_extraction_radii, 1);
+
+            // Check for multiple extraction radii, otherwise load single
+            // radius/level (for backwards compatibility).
+            if (pp.contains("rs_extraction_levels"))
+            {
+                pp.load("rs_extraction_levels",
+                        realscalar_extraction_params.extraction_levels,
+                        realscalar_extraction_params.num_extraction_radii);
+            }
+            else
+            {
+                pp.load("rs_extraction_level", realscalar_extraction_params.extraction_levels,
+                        1, 0);
+            }
+            if (pp.contains("rs_extraction_radii"))
+            {
+                pp.load("rs_extraction_radii", realscalar_extraction_params.extraction_radii,
+                        realscalar_extraction_params.num_extraction_radii);
+            }
+            else
+            {
+                pp.load("rs_extraction_radius", realscalar_extraction_params.extraction_radii,
+                        1, 0.1);
+            }
+
+            pp.load("rs_num_points_phi", realscalar_extraction_params.num_points_phi, 2);
+            pp.load("rs_num_points_theta", realscalar_extraction_params.num_points_theta, 5);
+            if (realscalar_extraction_params.num_points_theta % 2 == 0)
+            {
+                realscalar_extraction_params.num_points_theta += 1;
+                pout() << "Parameter: num_points_theta incompatible with "
+                          "Simpson's "
+                       << "rule so increased by 1.\n";
+            }
+            pp.load("rs_extraction_center", realscalar_extraction_params.center, center);
+
+            if (pp.contains("rs_modes"))
+            {
+                pp.load("rs_num_modes", realscalar_extraction_params.num_modes);
+                std::vector<int> realscalar_extraction_modes_vect(
+                    2 * realscalar_extraction_params.num_modes);
+                pp.load("rs_modes", realscalar_extraction_modes_vect,
+                        2 * realscalar_extraction_params.num_modes);
+                realscalar_extraction_params.modes.resize(realscalar_extraction_params.num_modes);
+                for (int i = 0; i < realscalar_extraction_params.num_modes; ++i)
+                {
+                    realscalar_extraction_params.modes[i].first =
+                        realscalar_extraction_modes_vect[2 * i];
+                    realscalar_extraction_params.modes[i].second =
+                        realscalar_extraction_modes_vect[2 * i + 1];
+                }
+            }
+            else
+            {
+                // by default extraction (l,m) = (2,0), (2,1) and (2,2)
+                realscalar_extraction_params.num_modes = 3;
+                realscalar_extraction_params.modes.resize(3);
+                for (int i = 0; i < 3; ++i)
+                {
+                    realscalar_extraction_params.modes[i].first = 2;
+                    realscalar_extraction_params.modes[i].second = i;
+                }
+            }
+
+            pp.load("rs_write_extraction", realscalar_extraction_params.write_extraction,
+                    false);
+
+            std::string realscalar_extraction_path;
+            if (pp.contains("rs_extraction_subpath"))
+            {
+                pp.load("rs_extraction_subpath", realscalar_extraction_path);
+                if (!realscalar_extraction_path.empty() && realscalar_extraction_path.back() != '/')
+                    realscalar_extraction_path += "/";
+                if (output_path != "./" && !output_path.empty())
+                    realscalar_extraction_path = output_path + realscalar_extraction_path;
+            }
+            else
+                realscalar_extraction_path = data_path;
+
+            realscalar_extraction_params.data_path = data_path;
+            realscalar_extraction_params.extraction_path = realscalar_extraction_path;
+
+            // default names to Weyl extraction
+            pp.load("rs_extraction_file_prefix",
+                    realscalar_extraction_params.extraction_file_prefix,
+                    std::string("RealScalar_extraction_"));
+            pp.load("rs_integral_file_prefix",
+                    realscalar_extraction_params.integral_file_prefix,
+                    std::string("RealScalar_mode_"));
+        }
+
+
+
+        ////////////
+        // MASSCHARGE PARAMS
+        ////////////
+
+        pp.load("activate_mq_extraction", activate_mq_extraction, false);
+
+        if (activate_mq_extraction)
+        {
+            pp.load("mq_num_extraction_radii",
+                    mq_extraction_params.num_extraction_radii, 1);
+
+            // Check for multiple extraction radii, otherwise load single
+            // radius/level (for backwards compatibility).
+            if (pp.contains("mq_extraction_levels"))
+            {
+                pp.load("mq_extraction_levels",
+                        mq_extraction_params.extraction_levels,
+                        mq_extraction_params.num_extraction_radii);
+            }
+            else
+            {
+                pp.load("mq_extraction_level", mq_extraction_params.extraction_levels,
+                        1, 0);
+            }
+            if (pp.contains("mq_extraction_radii"))
+            {
+                pp.load("mq_extraction_radii", mq_extraction_params.extraction_radii,
+                        mq_extraction_params.num_extraction_radii);
+            }
+            else
+            {
+                pp.load("mq_extraction_radius", mq_extraction_params.extraction_radii,
+                        1, 0.1);
+            }
+
+            pp.load("mq_num_points_phi", mq_extraction_params.num_points_phi, 2);
+            pp.load("mq_num_points_theta", mq_extraction_params.num_points_theta, 5);
+            if (mq_extraction_params.num_points_theta % 2 == 0)
+            {
+                mq_extraction_params.num_points_theta += 1;
+                pout() << "Parameter: num_points_theta incompatible with "
+                          "Simpson's "
+                       << "rule so increased by 1.\n";
+            }
+            pp.load("mq_extraction_center", mq_extraction_params.center, center);
+
+            if (pp.contains("mq_modes"))
+            {
+                pp.load("mq_num_modes", mq_extraction_params.num_modes);
+                std::vector<int> mq_extraction_modes_vect(
+                    2 * mq_extraction_params.num_modes);
+                pp.load("mq_modes", mq_extraction_modes_vect,
+                        2 * mq_extraction_params.num_modes);
+                mq_extraction_params.modes.resize(mq_extraction_params.num_modes);
+                for (int i = 0; i < mq_extraction_params.num_modes; ++i)
+                {
+                    mq_extraction_params.modes[i].first =
+                        mq_extraction_modes_vect[2 * i];
+                    mq_extraction_params.modes[i].second =
+                        mq_extraction_modes_vect[2 * i + 1];
+                }
+            }
+            else
+            {
+                // by default extraction (l,m) = (2,0), (2,1) and (2,2)
+                mq_extraction_params.num_modes = 3;
+                mq_extraction_params.modes.resize(3);
+                for (int i = 0; i < 3; ++i)
+                {
+                    mq_extraction_params.modes[i].first = 2;
+                    mq_extraction_params.modes[i].second = i;
+                }
+            }
+
+            pp.load("mq_write_extraction", mq_extraction_params.write_extraction,
+                    false);
+
+            std::string mq_extraction_path;
+            if (pp.contains("mq_extraction_subpath"))
+            {
+                pp.load("mq_extraction_subpath", mq_extraction_path);
+                if (!mq_extraction_path.empty() && mq_extraction_path.back() != '/')
+                    mq_extraction_path += "/";
+                if (output_path != "./" && !output_path.empty())
+                    mq_extraction_path = output_path + mq_extraction_path;
+            }
+            else
+                mq_extraction_path = data_path;
+
+            mq_extraction_params.data_path = data_path;
+            mq_extraction_params.extraction_path = mq_extraction_path;
+
+            // default names to mq extraction
+            pp.load("mq_extraction_file_prefix",
+                    mq_extraction_params.extraction_file_prefix,
+                    std::string("MQ_extraction_"));
+            pp.load("mq_integral_file_prefix",
+                    mq_extraction_params.integral_file_prefix,
+                    std::string("MQ_mode_"));
         }
 
 #ifdef USE_AHFINDER
@@ -309,14 +614,6 @@ class SimulationParametersBase : public ChomboParameters
                     mode_name, value_str, (l >= 2) && (abs(m) <= l),
                     "l must be >= 2 and m must satisfy -l <= m <= l");
             }
-            int extrapolation_order =
-                extraction_params.radii_idxs_for_extrapolation.size();
-            if (extrapolation_order > 1)
-                pout() << "Extraction with extrapolation order "
-                       << extrapolation_order << std::endl;
-            else if (extrapolation_order ==
-                     1) // 1 radius only because other were invalid
-                pout() << "Extraction radii not valid." << std::endl;
         }
     }
 
@@ -341,12 +638,20 @@ class SimulationParametersBase : public ChomboParameters
     CCZ4_params_t<> ccz4_params;
 
     bool activate_extraction;
+    bool activate_em_extraction;
+    bool activate_rs_extraction;
+    bool activate_mq_extraction;
     spherical_extraction_params_t extraction_params;
+    spherical_extraction_params_t pheyl2_extraction_params;
+    spherical_extraction_params_t realscalar_extraction_params;
+    spherical_extraction_params_t mq_extraction_params;
 
 #ifdef USE_AHFINDER
     bool AH_activate;
     AHParams_t<AHFunction> AH_params;
 #endif
+
+    std::string data_path;
 };
 
 #endif /* SIMULATIONPARAMETERSBASE_HPP_ */

@@ -42,19 +42,29 @@ int runGRChombo(int argc, char *argv[])
         sim_params.verbosity);
     bh_amr.set_interpolator(&interpolator);
 
-#ifdef USE_AHFINDER
-    if (sim_params.AH_activate)
-    {
-        AHSurfaceGeometry sph(sim_params.bh_params.center);
-#ifndef USE_ISOTROPIC_BOOSTED_BH
-        bh_amr.m_ah_finder.add_ah(sph, sim_params.AH_initial_guess,
-                                  sim_params.AH_params);
-#else
-        bh_amr.m_ah_finder.add_ah(sph, sim_params.AH_initial_guess_ellipsoid,
-                                  sim_params.AH_params);
-#endif
-    }
-#endif
+    #ifdef USE_AHFINDER
+        // one horizon
+        if (sim_params.AH_activate && sim_params.AH_num_horizons==1)
+        {
+            AHSphericalGeometry sph1(sim_params.horizon_centre_1);
+            bh_amr.m_ah_finder.add_ah(sph1, sim_params.AH_initial_guess,
+                                      sim_params.AH_params);
+        }
+        // two horizons
+        else if (sim_params.AH_activate && sim_params.AH_num_horizons==2)
+        {
+            AHSphericalGeometry sph1(sim_params.horizon_centre_1);
+            AHSphericalGeometry sph2(sim_params.horizon_centre_2);
+            bh_amr.m_ah_finder.add_ah(sph1, sim_params.AH_initial_guess,
+                                      sim_params.AH_params);
+            bh_amr.m_ah_finder.add_ah(sph2, sim_params.AH_initial_guess,
+                                      sim_params.AH_params);
+            if (sim_params.AH_expect_merger)
+            {
+                bh_amr.m_ah_finder.add_ah_merger(0, 1, sim_params.AH_params);
+            }
+        }
+    #endif
 
     using Clock = std::chrono::steady_clock;
     using Minutes = std::chrono::duration<double, std::ratio<60, 1>>;

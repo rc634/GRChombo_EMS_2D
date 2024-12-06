@@ -304,6 +304,21 @@ inline Tensor<3, double> epsilon()
     return epsilon;
 }
 
+/// Computes the levi-civita symbol (3D, NB, symbol, not the Tensor)
+inline Tensor<3, double, 3> epsilon_3d_robin()
+{
+    Tensor<3, double, 3> epsilon = {0.};
+    epsilon[0][1][2] = 1.0;
+    epsilon[1][2][0] = 1.0;
+    epsilon[2][0][1] = 1.0;
+    epsilon[0][2][1] = -1.0;
+    epsilon[2][1][0] = -1.0;
+    epsilon[1][0][2] = -1.0;
+
+    return epsilon;
+}
+
+
 /// Computes the levi-civita symbol (4D, NB, symbol, not the Tensor)
 inline Tensor<4, double, 4> epsilon4D()
 {

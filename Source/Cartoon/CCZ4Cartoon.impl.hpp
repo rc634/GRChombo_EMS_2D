@@ -30,16 +30,16 @@ inline CCZ4Cartoon<gauge_t, deriv_t, coupling_t>::CCZ4Cartoon(
 
 template <class data_t, template <typename> class vars_t>
 emtensorCartoon_t<data_t>
-compute_SF_EM_tensor(const vars_t<data_t> &vars,
+compute_EMS_EM_tensor(const vars_t<data_t> &vars,
                      const vars_t<Tensor<1, data_t>> &d1,
 const Tensor<2, data_t> &h_UU, const data_t &h_UU_ww,
-const chris_t<data_t> &chris, const int &nS)
+const chris_t<data_t> &chris, const int &nS, const CouplingFunction &a_coupling)
 {
 emtensorCartoon_t<data_t> out;
 
 // set coupling functions
 data_t coupling =0., f_coupling=0., fprime=0.;
-m_coupling.compute_coupling(f_coupling, fprime, coupling, vars);
+a_coupling.compute_coupling(f_coupling, fprime, coupling, vars);
 
 // 3D B and E fields
 Tensor<1, data_t, 3> E, B;
@@ -61,7 +61,7 @@ epsLLL[2][0][1] = eps012;
 epsLLL[2][1][0] = -eps012;
 
 // 3d spatial inverse metric
-Tensor<3, data_t, 3> gammaUU_3d = {0.};
+Tensor<2, data_t, 3> gammaUU_3d = {0.};
 FOR2(i,j)
 {
     gammaUU_3d[i][j] = h_UU[i][j] * vars.chi;
@@ -396,12 +396,12 @@ this->m_gauge.rhs_gauge(rhs, vars, d1, d2, advec);
 ///////////////////////
 
 // calculate coupling
-data_t coupling =0.; f_coupling=0.; fprime=0.;
+data_t coupling =0., f_coupling=0., fprime=0.;
 
 m_coupling.compute_coupling(f_coupling, fprime, coupling, vars);
 
 emtensorCartoon_t<data_t> emtensor =
-        compute_SF_EM_tensor(vars, d1, h_UU, h_UU_ww, chris, nS);
+        compute_EMS_EM_tensor(vars, d1, h_UU, h_UU_ww, chris, nS, m_coupling);
 
 Tensor<2, data_t> Sij_TF;
 data_t Sww_TF;
@@ -444,7 +444,7 @@ FOR(i)
 
 // some conveniences and damping parameters
 data_t ooy = one_over_cartoon_coord; // 1/y
-data_t iy = dI; // index of y coord
+const int iy = dI; // index of y coord
 data_t kappa_B = 1.0, kappa_E = 1.0;
 
 Tensor<1, data_t, 3> E;
@@ -485,7 +485,7 @@ FOR(i)
 }
 FOR2(i,j)
 {
-    Kij[i][j] = vars.A[i][j]/vars.chi + vars.K*vars.h[i][j]/3.
+    Kij[i][j] = vars.A[i][j]/vars.chi + vars.K*vars.h[i][j]/3.;
 }
 //cartoon terms for z derivatives
 dE[2][0] = 0.;

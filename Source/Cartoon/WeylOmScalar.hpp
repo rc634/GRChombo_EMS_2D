@@ -33,7 +33,7 @@ template <class data_t> struct Riemann_t
 };
 
 //! Struct for the null tetrad
-template <class data_t> struct Tetrad_t
+template <class data_t> struct Tetrad_cartoon_t
 {
     Tensor<1, data_t> m1; //!< the vector u^i
     Tensor<1, data_t> m2; //!< the vector v^i
@@ -92,7 +92,7 @@ class WeylOmScalar
 
     //! Calculation of the tetrads
     template <class data_t>
-    Tetrad_t<data_t>
+    Tetrad_cartoon_t<data_t>
     compute_null_tetrad(const Vars<data_t> &vars,
                         const Coordinates<data_t> &coords) const;
 

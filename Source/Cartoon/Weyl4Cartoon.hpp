@@ -3,6 +3,20 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
+ // protective wrapper to stop double definition
+ #ifndef TETRAD_ALREADY_DEFINED_
+ #define TETRAD_ALREADY_DEFINED_
+ //! Struct for the null tetrad
+ template <class data_t> struct Tetrad_t
+ {
+     Tensor<1, data_t, 3> u; //!< the vector u^i
+     Tensor<1, data_t, 3> v; //!< the vector v^i
+     Tensor<1, data_t, 3> w; //!< the vector w^i
+ };
+ #endif
+
+
+
 #ifndef WEYL4_HPP_
 #define WEYL4_HPP_
 
@@ -25,13 +39,7 @@ template <class data_t> struct EBFields_t
     Tensor<2, data_t, 3> B; //!< Magnetic component of Weyltensor
 };
 
-//! Struct for the null tetrad
-template <class data_t> struct Tetrad_t
-{
-    Tensor<1, data_t, 3> u; //!< the vector u^i
-    Tensor<1, data_t, 3> v; //!< the vector v^i
-    Tensor<1, data_t, 3> w; //!< the vector w^i
-};
+
 
 //! Struct for the Newman Penrose scalar
 template <class data_t> struct NPScalar_t

@@ -16,7 +16,7 @@
 #include "Tensor.hpp"
 #include "TensorAlgebra.hpp"
 #include "simd.hpp"
-#include "DefaultEMDCouplingFunction.hpp"
+//#include "DefaultEMDCouplingFunction.hpp"
 
 #include "UserVariables.hpp" //This files needs NUM_VARS - total number of components
 
@@ -31,7 +31,7 @@
  **/
 template <class gauge_t = MovingPunctureGauge,
           class deriv_t = FourthOrderDerivatives,
-          class coupling_t = DefaultEMDCouplingFunction>
+          class coupling_t = CouplingFunction>
 class CCZ4Cartoon : public CCZ4RHS<gauge_t>
 {
   public:
@@ -51,7 +51,7 @@ class CCZ4Cartoon : public CCZ4RHS<gauge_t>
         params_t params, //!< The CCZ4 cartoon parameters
         double dx,       //!< The grid spacing
         double sigma,    //!< Kreiss-Oliger dissipation coefficient
-        potential_t a_potential,
+        coupling_t a_coupling, // EMS coupling function
         double a_G_Newton,
         int formulation = CCZ4::USE_CCZ4, //!< Switches between CCZ4, BSSN,...
         double cosmological_constant = 0  //!< Value of the cosmological const.

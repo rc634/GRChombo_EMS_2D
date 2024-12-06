@@ -25,8 +25,8 @@ src_dirs := $(GRCHOMBO_SOURCE)/utils \
             $(GRCHOMBO_SOURCE)/AMRInterpolator  \
             $(GRCHOMBO_SOURCE)/ApparentHorizonFinder  \
             $(GRCHOMBO_SOURCE)/InitialConditions/BlackHoles \
-						$(GRCHOMBO_SOURCE)/InitialConditions/EMDBH  \
-	    			$(GRCHOMBO_SOURCE)/InitialConditions/EMDBH/1D_SOL \
+	    $(GRCHOMBO_SOURCE)/InitialConditions/EMSBH  \
+	    $(GRCHOMBO_SOURCE)/InitialConditions/EMSBH/1D_SOL \
             $(GRCHOMBO_SOURCE)/BlackHoles
 
 include $(CHOMBO_HOME)/mk/Make.test

@@ -22,7 +22,7 @@ inline EMSBH_read::EMSBH_read(EMSBH_params_t a_params_EMSBH,
     m_data_path = m_params_EMSBH.data_path;
 }
 
-void EMSBH_read::compute_1d_solution(const double max_r)
+void EMSBH_read::compute_1d_solution()
 {
     try
     {
@@ -40,12 +40,11 @@ void EMSBH_read::compute_1d_solution(const double max_r)
 // Compute the value of the initial vars on the grid
 template <class data_t> void EMSBH_read::compute(Cell<data_t> current_cell) const
 {
-    MatterCCZ4<EinsteinMaxwellDilatonField<>>::Vars<data_t> vars;
-    // Load variables (should be set to zero if this is a single BS)
+    CCZ4CartoonVars::VarsWithGauge<data_t> vars;
+    // Load variables (should be set to zero)
     current_cell.load_vars(vars);
     // VarsTools::assign(vars, 0.); // Set only the non-zero components below
-    Coordinates<data_t> coords(current_cell, m_dx,
-                               m_params_EMSBH.star_centre);
+    Coordinates<data_t> coords(current_cell, m_dx, m_params_EMSBH.star_centre);
 
 
     // binary parameters (can be NO binary too)
@@ -66,7 +65,7 @@ template <class data_t> void EMSBH_read::compute(Cell<data_t> current_cell) cons
 
     // coord objects
     double x = coords.x - 0.5 * separation;
-    double z = 0. // coords.z;
+    double z = 0.; // coords.z;
     double y = coords.y;
     double cart_coords[3] = {x, y, z};
 
@@ -142,12 +141,11 @@ template <class data_t> void EMSBH_read::compute(Cell<data_t> current_cell) cons
     for (int i=0; i<3; i++){
     for (int j=0; j<3; j++){
     for (int m=0; m<3; m++){
-    for (int n=0; n<3; n++)
-    {
+    for (int n=0; n<3; n++){
         gamma[i][j] += gamma_polar[m][n]*dxp_dxc[m][i]*dxp_dxc[n][j];
         //gamma_inv[i][j] += gamma_polar_inv[m][n]*dxc_dxp[m][i]*dxc_dxp[n][j];
         gamma_inv[i][j] += gamma_polar_inv[m][n]*dxc_dxp[i][m]*dxc_dxp[j][n];
-    }}}}}
+    }}}}
 
     // loading the upstairs E^r then lower with gamma_rr = a/(X*X)
     double E_r = m_1d_sol.get_value_interp(m_1d_sol.Er,r)*root_kappa;
@@ -198,17 +196,15 @@ template <class data_t> void EMSBH_read::compute(Cell<data_t> current_cell) cons
     for (int i=0; i<2; i++){
     for (int j=0; j<2; j++){
     for (int m=0; m<3; m++){
-    for (int n=0; n<3; n++)
-    {
+    for (int n=0; n<3; n++){
         // conformal decomposition here with chi
         vars.A[i][j] += vars.chi * dxp_dxc[m][i] * dxp_dxc[n][j] * Aij_polar[m][n];
-    }
+    }}}}
     for (int m=0; m<3; m++){
-    for (int n=0; n<3; n++)
-    {
+    for (int n=0; n<3; n++){
         // cartoon term
         vars.Aww += vars.chi * dxp_dxc[m][2] * dxp_dxc[n][2] * Aij_polar[m][n];
-    }
+    }}
 
     // scalar field
     vars.phi = m_1d_sol.get_value_interp(m_1d_sol.phi,r)*root_kappa;

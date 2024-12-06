@@ -3,14 +3,14 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef EMSBH_READ_HPP_
-#define EMSBH_READ_HPP_
+#ifndef RNBH_READ_HPP_
+#define RNBH_READ_HPP_
 
 
-#include "EMSBHSolution_read.hpp"
+#include "RNBHSolution.hpp"
 #include "Cell.hpp"
 #include "EMSCouplingFunction.hpp"
-#include "EinsteinMaxwellDilatonField.hpp"
+// #include "EinsteinMaxwellDilatonField.hpp" // not sure if needed
 #include "Coordinates.hpp"
 #include "MatterCCZ4.hpp"
 #include "Tensor.hpp"
@@ -22,17 +22,17 @@
 
 //! Class which solves for the initial data for a spherically symmetric emdbh
 
-class EMSBH_read
+class RNBH_read
 {
 
   public:
     //! The constructor
-    EMSBH_read(EMSBH_params_t a_params_EMSBH,
+    RNBH_read(EMSBH_params_t a_params_EMSBH,
               CouplingFunction::params_t a_params_coupling_function,
               double a_G_Newton, double a_dx, int a_verbosity);
 
     //! Computes the 1d solution and stores in m_1d_sol
-    void compute_1d_solution(const double max_r);
+    void compute_1d_solution();
 
     //! Function to compute the value of all the initial vars on the grid
     template <class data_t> void compute(Cell<data_t> current_cell) const;
@@ -46,16 +46,15 @@ class EMSBH_read
     EMSBH_params_t m_params_EMSBH;  //!< The complex scalar field params
     CouplingFunction::params_t m_params_coupling_function; //!< The potential params
     int m_verbosity;
-    std::string m_data_path;
 
   public:
 
-    EMSBHSolution_read m_1d_sol; /*<
+    RNBHSolution m_1d_sol; /*<
     The object that stores the solution found by reading data file */
 
 
 };
 
-#include "EMSBH_read.impl.hpp"
+#include "RNBH_read.impl.hpp"
 
 #endif /* EMSBH_READ_HPP_ */

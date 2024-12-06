@@ -28,6 +28,8 @@
 // EMS includes
 #include "EMSBH_read.hpp"
 #include "EMSCouplingFunction.hpp"
+// RNBH test include initial data
+#include "RNBH_read.hpp"
 
 // For GW extraction
 #include "WeylExtraction.hpp"
@@ -70,20 +72,21 @@ void EMSBH2DLevel::specificAdvance()
 }
 
 // Initial data for field and metric variables
-void EMS2DBHLevel::initialData()
+void EMSBH2DLevel::initialData()
 {
     CH_TIME("EMSBH2DLevel::initialData");
     if (m_verbosity)
         pout() << "EMSBH2DLevel::initialData " << m_level << endl;
 
-    // First initalise a EMSBH object
-    EMSBH_read emdbh(m_p.emdbh_params, m_p.coupling_function_params,
-                         m_p.G_Newton, m_dx, m_verbosity);
+    // // First initalise a EMSBH object - reads from premade datafile (outside grchombo)
+    // EMSBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+    //                      m_p.m_G_Newton, m_dx, m_verbosity);
 
-   if (m_verbosity)
-       pout() << "EMSBH2DLevel::initialData - Compute_1d_solution " << m_level << endl;
-    // the max radius the code might need to calculate out to is L*sqrt(3)
-    emdbh.compute_1d_solution(2. * m_p.L);
+
+    // First initalise a RNBH object - analytic test
+    RNBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+                        m_p.m_G_Newton, m_dx, m_verbosity);
+    emdbh.compute_1d_solution();
 
 
     if (m_verbosity)
@@ -94,26 +97,29 @@ void EMS2DBHLevel::initialData()
                    m_state_new, INCLUDE_GHOST_CELLS, disable_simd());
 
 
+
     if (m_verbosity)
         pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
     BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
                    EXCLUDE_GHOST_CELLS, disable_simd());
 
+
     fillAllGhosts();
+
 }
 
 // Things to do before a plot level - need to calculate the Weyl scalars
 void EMSBH2DLevel::prePlotLevel()
 {
     fillAllGhosts();
-    Potential potential(m_p.potential_params);
-    // ComplexScalarFieldWithPotential complex_scalar_field(potential);
+    // coupling not currently used in Constraint calcs
+    CouplingFunction my_coupling(m_p.coupling_function_params);
     BoxLoops::loop(
         make_compute_pack(
 
             WeylOmScalar(m_p.extraction_params.center, m_dx),
 
-            Constraints<CouplingFunction>(m_dx, potential, m_p.m_G_Newton)
+            Constraints<CouplingFunction>(m_dx, my_coupling, m_p.m_G_Newton)
 
             //EMSCartoonLorentzScalars<EinsteinMaxwellScalarFieldWithCoupling>(m_dx,
                                    //m_p.extraction_params.extraction_center,
@@ -141,9 +147,9 @@ void EMSBH2DLevel::specificEvalRHS(GRLevelData &a_soln,
 
     // Calculate CCZ4 right hand side
     CouplingFunction coupling_function(m_p.coupling_function_params);
-    CCZ4Cartoon<MovingPunctureGauge, FourthOrderDerivatives, CouplingFunction>(
-        m_p.ccz4_params, m_dx, m_p.sigma, potential, m_p.m_G_Newton,
-        m_p.formulation);
+    CCZ4Cartoon<MovingPunctureGauge,FourthOrderDerivatives, CouplingFunction>
+    my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
+                                           m_p.m_G_Newton, m_p.formulation);
     SetValue set_analysis_vars_zero(0.0, Interval(c_Xi + 1, NUM_VARS - 1));
     auto compute_pack =
         make_compute_pack(my_ccz4_cartoon, set_analysis_vars_zero);
@@ -159,38 +165,10 @@ void EMSBH2DLevel::specificUpdateODE(GRLevelData &a_soln,
 
 
 
-// probably delete this ??
-// void EMSBH2DLevel::preTagCells(double &a_maximum)
-// {
-//     // Find at which radius the maximum rho value is so we can use it in the
-//     // tagging criterion class
-//     // Don't do this when we're not restarting from checkpoint at t=0 though. It
-//     // crashes the code because it starts requesting data from higher levels
-//     // before they are created.
-//     if (!m_p.restart_from_checkpoint && m_time == 0.0)
-//     {
-//         a_maximum = 0.0;
-//     }
-//     else
-//     {
-//         AMRReductions<VariableType::diagnostic> amr_reductions(m_bh_amr);
-//         RealVect max_rho_index = amr_reductions.maxIndex(c_rho);
-//         double r2 = .0000001 + max_rho_index[0] * max_rho_index[0] +
-//                     max_rho_index[1] * max_rho_index[1];
-// #if CH_SPACEDIM == 3
-//         r2 += max_rho_index[2] * max_rho_index[2];
-// #endif
-//         a_maximum = sqrt(r2);
-//     }
-// }
-//
-
-
-
 void EMSBH2DLevel::computeTaggingCriterion(FArrayBox &tagging_criterion,
                                                  const FArrayBox &current_state)
 {
-    BoxLoops::loop(EMDExtractionTaggingCriterion(
+    BoxLoops::loop(EMSExtractionTaggingCriterion(
                      m_dx, m_level, m_p.mass_extraction_params,
                      m_p.regrid_threshold_A, m_p.regrid_threshold_phi,
                      m_p.regrid_threshold_chi), current_state,
@@ -207,13 +185,13 @@ void EMSBH2DLevel::specificPostTimeStep()
                         // called during setup at t=0 from Main
 
     fillAllGhosts();
+    CouplingFunction my_coupling(m_p.coupling_function_params);
 
-    Potential potential(m_p.potential_params);
-    // ComplexScalarFieldWithPotential complex_scalar_field(potential);
     BoxLoops::loop(WeylOmScalar(m_p.extraction_params.center, m_dx),
                            m_state_new, m_state_diagnostics,
                            EXCLUDE_GHOST_CELLS);
-    BoxLoops::loop(Constraints<Potential>(m_dx, potential, m_p.m_G_Newton),
+    BoxLoops::loop(
+            Constraints<CouplingFunction>(m_dx, my_coupling, m_p.m_G_Newton),
                        m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
 
 
@@ -329,7 +307,7 @@ void EMSBH2DLevel::specificPostTimeStep()
             at_level_timestep_multiple(
                 m_p.extraction_params.min_extraction_level()))
         {
-            CH_TIME("EMDBS2DLevel::doAnalysis::EMRadExtraction");
+            CH_TIME("EMSBH2DLevel::doAnalysis::EMRadExtraction");
 
             fillAllGhosts();
             // CouplingFunction coupling_function(m_p.coupling_function_params);
@@ -360,5 +338,6 @@ void EMSBH2DLevel::specificPostTimeStep()
                                              first_step, m_restart_time);
                 em_extraction.execute_query(m_bh_amr.m_interpolator);
             }
+        }
     }
 }
