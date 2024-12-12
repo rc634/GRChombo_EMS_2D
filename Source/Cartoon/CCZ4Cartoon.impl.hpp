@@ -443,7 +443,7 @@ FOR(i)
 ///////////////////////////////////////
 
 // some conveniences and damping parameters
-data_t ooy = one_over_cartoon_coord; // 1/y
+data_t ooy = sqrt(1./(pow(1./one_over_cartoon_coord,2)+10e-20)); // 1/y
 const int iy = dI; // index of y coord
 data_t kappa_B = 1.0, kappa_E = 1.0;
 
@@ -466,13 +466,18 @@ epsLLL[2][0][1] = eps012;
 epsLLL[2][1][0] = -eps012;
 
 // some derivatives of tensors
-Tensor<3, data_t> dgammainv; // d[i] gammainv [j,k]
-Tensor<3, data_t> dgamma; // d[i] gamma [j,k]
+Tensor<3, data_t, 3> dgammainv = {0.}; // d[i] gammainv [j,k]
+Tensor<3, data_t, 3> dgamma3d = {0.}; // d[i] gamma [j,k]
 Tensor<1, data_t> drootgammathing; // (1/rootgamma) d_i rootgamma
 Tensor<2, data_t, 3> dE; // d[i] E[j] = dE[i][j]
 Tensor<2, data_t, 3> dB; // d[i] B[j] = dB[i][j]
 Tensor<2, data_t> Kij; // K_{ij}
 data_t Kzz = vars.Aww / vars.chi + vars.K * vars.hww / 3.;
+FOR2(i,j)
+{
+    Kij[i][j] = vars.A[i][j]/vars.chi + vars.K*vars.h[i][j]/3.;
+}
+
 FOR(i)
 {
     drootgammathing[i] = -3./(2. * vars.chi) * d1.chi[i];
@@ -483,10 +488,6 @@ FOR(i)
     dB[i][1] = d1.By[i];
     dB[i][2] = d1.Bz[i];
 }
-FOR2(i,j)
-{
-    Kij[i][j] = vars.A[i][j]/vars.chi + vars.K*vars.h[i][j]/3.;
-}
 //cartoon terms for z derivatives
 dE[2][0] = 0.;
 dE[2][1] = - ooy * vars.Ez;
@@ -495,18 +496,7 @@ dB[2][0] = 0.;
 dB[2][1] = - ooy * vars.Bz;
 dB[2][2] = ooy * vars.By;
 
-FOR3(i,j,k)
-{
-    dgamma[i][j][k] = d1.h[j][k][i] / vars.chi
-                       - vars.h[j][k] * d1.chi[i] * pow(vars.chi , -2);
-    dgammainv[i][j][k]= 0.;
-}
-FOR5(i,a,b,c,d)
-{
-    dgammainv[i][a][d] = - vars.chi * vars.chi
-                              * h_UU[c][d] * h_UU[a][b]
-                              * dgamma[i][b][c];
-}
+
 
 // compute the terms that are the cross-product terms in maxwell
 // i.e. epsilon tensor terms,
@@ -529,17 +519,40 @@ FOR2(i,j)
 h_UU_3d[2][2] = h_UU_ww;
 
 
+FOR3(i,j,k)
+{
+    dgamma3d[i][j][k] = d1.h[j][k][i] / vars.chi
+                       - vars.h[j][k] * d1.chi[i] * pow(vars.chi , -2);
+}
+dgamma3d[0][2][2] = d1.hww[0] / vars.chi
+                       - vars.hww * d1.chi[0] * pow(vars.chi , -2);
+dgamma3d[1][2][2] = d1.hww[1] / vars.chi
+                      - vars.hww * d1.chi[1] * pow(vars.chi , -2);
+dgamma3d[2][0][2] = ooy * vars.h[0][1] / vars.chi;
+dgamma3d[2][2][0] = dgamma3d[2][0][2];
+dgamma3d[2][1][2] = ooy * (vars.h[1][1] - vars.hww)/vars.chi;
+dgamma3d[2][2][1] = dgamma3d[2][1][2];
+
+FOR5(i,a,b,c,d)
+for (int i=0; i<3; i++){
+for (int a=0; a<3; a++){
+for (int b=0; b<3; b++){
+for (int c=0; c<3; c++){
+for (int d=0; d<3; d++){
+    dgammainv[i][a][d] += - vars.chi * vars.chi
+                              * h_UU_3d[c][d] * h_UU_3d[a][b]
+                              * dgamma3d[i][b][c];
+}}}}}
+
+
 Tensor<2, data_t, 3> the_E_term;
 Tensor<2, data_t, 3> the_B_term;
-for (int k = 0; k <3; k++)
-{
-    for (int j = 0; j <3; j++)
-    {
-        the_E_term[k][j] = B[k] * d_lapse_3d[j] + vars.lapse * dB[j][k]
-                                - 2. * fprime * B[k] * d_phi_3d[j];
-        the_B_term[k][j] = - E[k] * d_lapse_3d[j] - vars.lapse * dE[j][k];
-    }
-}
+for (int k = 0; k <3; k++){
+for (int j = 0; j <3; j++){
+    the_E_term[k][j] = B[k] * d_lapse_3d[j] + vars.lapse * dB[j][k]
+                            - 2. * fprime * B[k] * d_phi_3d[j];
+    the_B_term[k][j] = - E[k] * d_lapse_3d[j] - vars.lapse * dE[j][k];
+}}
 
 // Make some objects we need to keep the equations readable
 data_t FF = 0.;
@@ -608,7 +621,7 @@ rhs.Xi = advec.Xi + vars.lapse * ( coupling *
                                          (divE2D
                                           + ooy * h_UU_ww * vars.chi * vars.Ey
                                           - 2. * fprime * EdotDphi)
-                                   - kappa_E * vars.Xi);
+                                          - kappa_E * vars.Xi);
 
 
 FOR (i)

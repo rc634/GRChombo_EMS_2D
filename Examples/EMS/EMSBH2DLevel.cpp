@@ -119,11 +119,11 @@ void EMSBH2DLevel::prePlotLevel()
 
             WeylOmScalar(m_p.extraction_params.center, m_dx),
 
-            Constraints<CouplingFunction>(m_dx, my_coupling, m_p.m_G_Newton)
+            Constraints<CouplingFunction>(m_dx, my_coupling, m_p.m_G_Newton),
 
-            //EMSCartoonLorentzScalars<EinsteinMaxwellScalarFieldWithCoupling>(m_dx,
-                                   //m_p.extraction_params.extraction_center,
-                                             //m_p.coupling_function_params),
+            EMSCartoonLorentzScalars<CouplingFunction>(m_dx,
+                                        m_p.extraction_params.center,
+                                             m_p.coupling_function_params)
 
             //EMTensor<EinsteinMaxwellScalarFieldWithCoupling>(
                 //emd_field, m_dx, c_rho,

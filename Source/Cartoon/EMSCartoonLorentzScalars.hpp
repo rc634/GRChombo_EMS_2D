@@ -21,21 +21,19 @@
 
 //! Calculates the Noether Charge integrand values and the modulus of the
 //! complex scalar field on the grid
-template <class matter_t> class EMSCartoonLorentzScalars
+template <class coupling_t> class EMSCartoonLorentzScalars
 {
     // Need matter variables and chi
     template <class data_t>
-    using ADMVars = ADMConformalVars::VarsWithGauge<data_t>;
-    template <class data_t>
-    //using MatterVars = EinsteinMaxwellDilatonField<>::Vars<data_t>;
-    using MatterVars = typename MatterCCZ4<matter_t>::template Vars<data_t>;
+    using Vars = CCZ4CartoonVars::VarsWithGauge<data_t>;
 
     double m_dx;
     const std::array<double, CH_SPACEDIM> m_centre;
     CouplingFunction::params_t m_coupling_params;
 
   public:
-    EMSCartoonLorentzScalars(double a_dx, std::array<double, CH_SPACEDIM> a_centre,
+    EMSCartoonLorentzScalars(double a_dx,
+                            const std::array<double, CH_SPACEDIM> a_centre,
                                   CouplingFunction::params_t &a_coupling_params)
     : m_dx(a_dx), m_centre(a_centre), m_coupling_params(a_coupling_params) {}
 
@@ -43,11 +41,9 @@ template <class matter_t> class EMSCartoonLorentzScalars
     {
         // load vars locally
         const FourthOrderDerivatives m_deriv(m_dx);
-        const auto adm_vars = current_cell.template load_vars<ADMVars>();
-        const auto matter_vars = current_cell.template load_vars<MatterVars>();
-        const auto adm_d1 = m_deriv.template diff1<ADMVars>(current_cell);
-        const auto matter_d1 = m_deriv.template diff1<MatterVars>(current_cell);
-        const auto matter_d2 = m_deriv.template diff2<MatterVars>(current_cell);
+        const auto vars = current_cell.template load_vars<Vars>();
+        const auto d1 = m_deriv.template diff1<Vars>(current_cell);
+        //const auto d2 = m_deriv.template diff2<Vars>(current_cell);
 
         // local variables for EMD coupling
         data_t alpha = m_coupling_params.alpha;
@@ -56,21 +52,16 @@ template <class matter_t> class EMSCartoonLorentzScalars
         data_t f2 = m_coupling_params.f2;
 
         // root minus g
-        data_t root_minus_g = pow(adm_vars.chi, -1.5)*adm_vars.lapse;
+        data_t root_minus_g = pow(vars.chi, -1.5)*vars.lapse;
 
         // inverse conformal metric
-        const auto h_UU = TensorAlgebra::compute_inverse_sym(adm_vars.h);
+        const auto h_UU = TensorAlgebra::compute_inverse_sym(vars.h);
         auto gamma_UU = h_UU;
-        FOR2(i,j) gamma_UU[i][j] = h_UU[i][j]*adm_vars.chi;
-
-        const auto chris = TensorAlgebra::compute_christoffel(adm_d1.h, h_UU);
-        const auto chris_phys =
-                           TensorAlgebra::compute_phys_chris(adm_d1.chi, adm_vars.chi,
-                                                       adm_vars.h, h_UU, chris.ULL);
+        FOR2(i,j) gamma_UU[i][j] = h_UU[i][j]*vars.chi;
 
         // coordinates
         Coordinates<data_t> coords(current_cell, m_dx, m_centre);
-        data_t x = coords.x, y = coords.y, z = coords.z;
+        data_t x = coords.x, y = coords.y, z = 0.0;
         data_t r = sqrt(x*x + y*y + z*z);
         data_t safe_r = sqrt(r*r + 10e-20);
         data_t rho = sqrt(x*x + y*y);
@@ -79,14 +70,14 @@ template <class matter_t> class EMSCartoonLorentzScalars
         data_t sintheta = rho/safe_r;
         data_t cosphi = x/safe_rho;
         data_t sinphi = y/safe_rho;
+        data_t ooy = 1./(y+10e-20);
 
 
         ////////////////////////////////////////////
-        // calculate A_\mu A^\mu = -At^2 + a_i a^i
-        // (At = A^\mu n_\mu = -\alpha A^t)
+        // mod sqaured of both damping params
         ////////////////////////////////////////////
-        data_t H2norm_damping = matter_vars.At * matter_vars.At
-                              + matter_vars.Xi * matter_vars.Xi;
+        data_t H2norm_damping = vars.Lambda * vars.Lambda
+                              + vars.Xi * vars.Xi;
 
 
         ////////////////////////////////////////////
@@ -99,20 +90,22 @@ template <class matter_t> class EMSCartoonLorentzScalars
         data_t BB = 0.; // squared variables
         data_t EE = 0.; // squared variables
 
-        Ei[0] = matter_vars.Ex;
-        Ei[1] = matter_vars.Ey;
-        Ei[2] = matter_vars.Ez;
+        Ei[0] = vars.Ex;
+        Ei[1] = vars.Ey;
+        Ei[2] = vars.Ez;
 
-        Bi[0] = matter_vars.ax;
-        Bi[1] = matter_vars.ay;
-        Bi[2] = matter_vars.az;
+        Bi[0] = vars.Bx;
+        Bi[1] = vars.By;
+        Bi[2] = vars.Bz;
 
 
         FOR2(i, j)
         {
-            EE += Ei[i] * Ei[j] * h_UU[i][j] * adm_vars.chi;
-            BB += Bi[i] * Bi[j] * h_UU[i][j] * adm_vars.chi;
+            EE += Ei[i] * Ei[j] * h_UU[i][j] * vars.chi;
+            BB += Bi[i] * Bi[j] * h_UU[i][j] * vars.chi;
         }
+        EE += Ei[2]*Ei[2]*vars.chi/vars.hww;
+        BB += Bi[2]*Bi[2]*vars.chi/vars.hww;
 
         FF = 2. * BB - 2. * EE;
 
@@ -121,18 +114,18 @@ template <class matter_t> class EMSCartoonLorentzScalars
         // calculate hamiltonian of scalar field
         ////////////////////////////////////////////
 
-        // data_t phi_hamiltonian = matter_vars.Pi * matter_vars.Pi;
+        // data_t phi_hamiltonian = vars.Pi * vars.Pi;
         //
         // FOR1(i)
         // {
-        //     phi_hamiltonian += 2. * matter_vars.Pi
-        //                           * adm_vars.shift[i] * matter_d1.phi[i];
+        //     phi_hamiltonian += 2. * vars.Pi
+        //                           * vars.shift[i] * d1.phi[i];
         // }
         //
         // FOR2(i,j)
         // {
-        //     phi_hamiltonian += matter_d1.phi[i] * matter_d1.phi[j]
-        //                      * h_UU[i][j] * adm_vars.chi;
+        //     phi_hamiltonian += d1.phi[i] * d1.phi[j]
+        //                      * h_UU[i][j] * vars.chi;
         // }
         //
         // phi_hamiltonian *= root_minus_g;
@@ -184,49 +177,93 @@ template <class matter_t> class EMSCartoonLorentzScalars
         data_t magnetic_constraint=0.;
         data_t electric_constraint=0.;
         data_t EDphi=0.; //E dot D phi
+        Tensor<1, data_t, 3> drootgammathing;
+        FOR1(i) drootgammathing[i] = -1.5*d1.chi[i]/vars.chi;
+        drootgammathing[2] = 0.;
+
+        Tensor<3, data_t, 3> dgamma3d = {0.};
+        FOR3(a,b,c)
+        {
+            dgamma3d[a][b][c] = (d1.h[b][c][a]
+                                - d1.chi[a]*vars.h[b][c]/vars.chi)/vars.chi;
+        }
+        dgamma3d[0][2][2] = (d1.hww[0]
+                            - d1.chi[0]*vars.hww/vars.chi)/vars.chi;
+        dgamma3d[1][2][2] = (d1.hww[1]
+                            - d1.chi[1]*vars.hww/vars.chi)/vars.chi;
+        dgamma3d[2][0][2] = ooy * vars.h[0][1] / vars.chi;
+        dgamma3d[2][2][0] = dgamma3d[2][0][2];
+        dgamma3d[2][1][2] = ooy * (vars.h[1][1] - vars.hww)/vars.chi;
+        dgamma3d[2][2][1] = dgamma3d[2][1][2];
+
+        Tensor<2, data_t, 3> gammaUU_3d = {0.};
+        FOR2(i,j) gammaUU_3d[i][j] = vars.chi * h_UU[i][j];
+        gammaUU_3d[2][2] = vars.chi / vars.hww;
+
+        Tensor<1, data_t, 3> div_gamma_inv = {0.}; // parial_a gamma^{ad}
+        for (int a = 0; a < 3; a++) {
+        for (int b = 0; b < 3; b++) {
+        for (int c = 0; c < 3; c++) {
+        for (int d = 0; d < 3; d++) {
+            div_gamma_inv[d] += - gammaUU_3d[a][b] * gammaUU_3d[c][d]
+                                * dgamma3d[a][b][c];
+        }}}}
 
         // declare the default coupling values
         data_t f_of_phi = 0.0;
         data_t f_prime_of_phi = 0.0;
         data_t coupling_of_phi = 1.0;
-        data_t local_phi = matter_vars.phi;
+        data_t local_phi = vars.phi;
 
         compute_coupling_of_phi<data_t>(alpha,f0,f1,f2,f_of_phi,
                                 f_prime_of_phi,coupling_of_phi,local_phi);
 
         FOR1(i)
         {
-            DiBj[i][0] = matter_d1.ax[i];
-            DiBj[i][1] = matter_d1.ay[i];
-            DiBj[i][2] = matter_d1.az[i];
+            DiBj[i][0] = d1.Bx[i];
+            DiBj[i][1] = d1.By[i];
+            DiBj[i][2] = d1.Bz[i];
 
-            DiEj[i][0] = matter_d1.Ex[i];
-            DiEj[i][1] = matter_d1.Ey[i];
-            DiEj[i][2] = matter_d1.Ez[i];
+            DiEj[i][0] = d1.Ex[i];
+            DiEj[i][1] = d1.Ey[i];
+            DiEj[i][2] = d1.Ez[i];
         }
+        DiBj[2][0] = 0.;
+        DiBj[2][1] = - ooy * vars.Bz;
+        DiBj[2][2] = ooy * vars.By;
+
+        DiEj[2][0] = 0.;
+        DiEj[2][1] = - ooy * vars.Ez;
+        DiEj[2][2] = ooy * vars.Ey;
 
         // partial derivs
         FOR2(i,j)
         {
-            EDphi += Ei[i] * matter_d1.phi[j] * h_UU[i][j] * adm_vars.chi;
-            electric_constraint += DiEj[i][j] * h_UU[i][j] * adm_vars.chi;
-            magnetic_constraint += DiBj[i][j] * h_UU[i][j] * adm_vars.chi;
+            EDphi += Ei[i] * d1.phi[j] * h_UU[i][j] * vars.chi;
+            electric_constraint += DiEj[i][j] * h_UU[i][j] * vars.chi;
+            magnetic_constraint += DiBj[i][j] * h_UU[i][j] * vars.chi;
+            electric_constraint += Ei[i] * drootgammathing[j]
+                                              * h_UU[i][j] * vars.chi;
+            magnetic_constraint += Bi[i] * drootgammathing[j]
+                                              * h_UU[i][j] * vars.chi;
         }
-
-        // covariant corrections
-        FOR3(i,j,k)
+        FOR1(i)
         {
-            magnetic_constraint += - chris_phys[k][i][j] * Bi[k]
-                                     * h_UU[i][j] * adm_vars.chi;
-            electric_constraint += - chris_phys[k][i][j] * Ei[k]
-                                     * h_UU[i][j] * adm_vars.chi;
+            electric_constraint += Ei[i] * div_gamma_inv[i];
+            magnetic_constraint += Ei[i] * div_gamma_inv[i];
         }
+        // cartoon terms
+        electric_constraint += ooy*vars.Ey*vars.chi/vars.hww;
+        magnetic_constraint += ooy*vars.By*vars.chi/vars.hww;
+
 
         electric_constraint = coupling_of_phi * ( electric_constraint
                                - 2. * EDphi * f_prime_of_phi );
 
         H2norm_maxwell_constraints = electric_constraint * electric_constraint
                                     + magnetic_constraint * magnetic_constraint;
+
+
 
 
 
@@ -249,14 +286,14 @@ template <class matter_t> class EMSCartoonLorentzScalars
         FOR2(i,j)
         {
             sU[i] += gamma_UU[i][j]*dxdr[j];
-            g_rr += adm_vars.h[i][j]*dxdr[i]*dxdr[j]/adm_vars.chi;
+            g_rr += vars.h[i][j]*dxdr[i]*dxdr[j]/vars.chi;
         }
         FOR3(i,j,k)
         {
             ADM_scalar += sU[i]*gamma_UU[j][k]*(
-                      (adm_d1.h[i][k][j]-adm_d1.h[j][k][i])/adm_vars.chi
-                       -(adm_d1.chi[j]*adm_vars.h[i][k] -
-                         adm_d1.chi[i]*adm_vars.h[j][k])*pow(adm_vars.chi,-2));                              ;
+                      (d1.h[i][k][j]-d1.h[j][k][i])/vars.chi
+                       -(d1.chi[j]*vars.h[i][k] -
+                         d1.chi[i]*vars.h[j][k])*pow(vars.chi,-2));                              ;
         }
 
         data_t Y_00 = 1./sqrt(4.*M_PI);
@@ -277,7 +314,7 @@ template <class matter_t> class EMSCartoonLorentzScalars
 
         FOR4(i,j,m,n)
         {
-            gamma_polar[i][j] += adm_vars.h[m][n]/adm_vars.chi * dxc_dxp[m][i] * dxc_dxp[n][j];
+            gamma_polar[i][j] += vars.h[m][n]/vars.chi * dxc_dxp[m][i] * dxc_dxp[n][j];
         }
         data_t det_gamma_polar = TensorAlgebra::compute_determinant_sym(gamma_polar);
         data_t root_gamma_polar = sqrt(det_gamma_polar);
