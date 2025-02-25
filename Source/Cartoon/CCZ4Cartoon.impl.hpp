@@ -466,9 +466,8 @@ epsLLL[2][0][1] = eps012;
 epsLLL[2][1][0] = -eps012;
 
 // some derivatives of tensors
-Tensor<3, data_t, 3> dgammainv = {0.}; // d[i] gammainv [j,k]
+Tensor<3, data_t, 3> dgammainv = {0.}; // d[i] gammainv ^[j,k]
 Tensor<3, data_t, 3> dgamma3d = {0.}; // d[i] gamma [j,k]
-Tensor<1, data_t> drootgammathing; // (1/rootgamma) d_i rootgamma
 Tensor<2, data_t, 3> dE; // d[i] E[j] = dE[i][j]
 Tensor<2, data_t, 3> dB; // d[i] B[j] = dB[i][j]
 Tensor<2, data_t> Kij; // K_{ij}
@@ -480,7 +479,6 @@ FOR2(i,j)
 
 FOR(i)
 {
-    drootgammathing[i] = -3./(2. * vars.chi) * d1.chi[i];
     dE[i][0] = d1.Ex[i];
     dE[i][1] = d1.Ey[i];
     dE[i][2] = d1.Ez[i];
@@ -528,12 +526,12 @@ dgamma3d[0][2][2] = d1.hww[0] / vars.chi
                        - vars.hww * d1.chi[0] * pow(vars.chi , -2);
 dgamma3d[1][2][2] = d1.hww[1] / vars.chi
                       - vars.hww * d1.chi[1] * pow(vars.chi , -2);
+
 dgamma3d[2][0][2] = ooy * vars.h[0][1] / vars.chi;
 dgamma3d[2][2][0] = dgamma3d[2][0][2];
 dgamma3d[2][1][2] = ooy * (vars.h[1][1] - vars.hww)/vars.chi;
 dgamma3d[2][2][1] = dgamma3d[2][1][2];
 
-FOR5(i,a,b,c,d)
 for (int i=0; i<3; i++){
 for (int a=0; a<3; a++){
 for (int b=0; b<3; b++){
@@ -557,27 +555,48 @@ for (int j = 0; j <3; j++){
 // Make some objects we need to keep the equations readable
 data_t FF = 0.;
 data_t EdotDphi = 0.;
-data_t divB2D = 0.;
-data_t divE2D = 0.;
+data_t divB3D = 0.;
+data_t divE3D = 0.;
 data_t EKx = 0., EKy = 0., EzKzz = vars.Ez * vars.chi * h_UU_ww * Kzz;
 data_t BKx = 0., BKy = 0., BzKzz = vars.Bz * vars.chi * h_UU_ww * Kzz;
 FOR2(i,j)
 {
+
     EKx += E[i] * Kij[0][j] * vars.chi * h_UU[i][j];
     EKy += E[i] * Kij[1][j] * vars.chi * h_UU[i][j];
     BKx += B[i] * Kij[0][j] * vars.chi * h_UU[i][j];
     BKy += B[i] * Kij[1][j] * vars.chi * h_UU[i][j];
+
     EdotDphi += vars.chi * h_UU[i][j] * E[i] * d1.phi[j];
-    divE2D += vars.chi * h_UU[i][j] * E[i] * drootgammathing[j]
-             + vars.chi *  h_UU[i][j] * dE[i][j]
-             + E[j] * dgammainv[i][i][j];
-    divB2D += vars.chi * h_UU[i][j] * B[i] * drootgammathing[j]
-             + vars.chi *  h_UU[i][j] * dB[i][j]
-             + B[j] * dgammainv[i][i][j];
+
+    divE3D += -3./2. * h_UU[i][j] * E[i] * d1.chi[j];
+    divE3D += vars.chi * h_UU[i][j] * dE[i][j]; // the "dE term"
+
+    divB3D += -3./2. * h_UU[i][j] * B[i] * d1.chi[j];
+    divB3D += vars.chi * h_UU[i][j] * dB[i][j]; // the "dB term"
+
     FF += 2. * vars.chi * h_UU[i][j] * (B[i] * B[j] - E[i] * E[j]);
 }
-//cartoon term
+
+//cartoon terms
+divE3D += ooy * h_UU_ww * vars.Ey * vars.chi; // the cartoon "dE term"
+divB3D += ooy * h_UU_ww * vars.By * vars.chi; // the cartoon "dB term"
 FF += 2. * vars.chi * h_UU_ww * (B[2] * B[2] - E[2] * E[2]);
+
+// need 3d loop here as d_z gamma^zx =/=0 (even thought gamma^xz=0)
+// same arguemtn for gamma^zy ...
+for (int i = 0; i <3; i++){
+for (int j = 0; j <3; j++){
+  divE3D += dgammainv[i][i][j] * E[j];
+  divB3D += dgammainv[i][i][j] * B[j];
+}}
+
+
+
+
+////////////////////////////////
+// Lie Derivatives
+////////////////////////////////
 
 // Lie derivatives, uses d_i beta_j = d1.shift[j][i]
 data_t LieBetaEx = advec.Ex
@@ -600,29 +619,22 @@ rhs.Pi = advec.Pi + vars.lapse * vars.K * vars.Pi
 
 rhs.Ex = LieBetaEx + vars.lapse * (vars.K * vars.Ex - 2. * EKx
                                    + d1.Xi[0]
-                                   - 2 * fprime * vars.Pi * vars.Ex);
+                                   - 2. * fprime * vars.Pi * vars.Ex);
 rhs.Ey = LieBetaEy + vars.lapse * (vars.K * vars.Ey - 2. * EKy
                                    + d1.Xi[1]
-                                   - 2 * fprime * vars.Pi * vars.Ey);
+                                   - 2. * fprime * vars.Pi * vars.Ey);
 rhs.Ez = LieBetaEz + vars.lapse * (vars.K * vars.Ez - 2. * EzKzz
-                                   - 2 * fprime * vars.Pi * vars.Ez);
+                                   - 2. * fprime * vars.Pi * vars.Ez);
 rhs.Bx = LieBetaBx + vars.lapse * (vars.K * vars.Bx - 2. * BKx
                                   + d1.Lambda[0]
-                                  - 2 * fprime * vars.Pi * vars.Ex);
+                                  - 2. * fprime * vars.Pi * vars.Ex);
 rhs.By = LieBetaBy + vars.lapse * (vars.K * vars.By - 2. * BKy
                                   + d1.Lambda[1]
-                                  - 2 * fprime * vars.Pi * vars.Ey);
+                                  - 2. * fprime * vars.Pi * vars.Ey);
 rhs.Bz = LieBetaBz + vars.lapse * (vars.K * vars.Bz - 2. * BzKzz);
-
-rhs.Lambda = advec.Lambda + vars.lapse * ( divB2D
-                                          + ooy * h_UU_ww * vars.chi * vars.By
-                                          - kappa_B * vars.Lambda);
-rhs.Xi = advec.Xi + vars.lapse * ( coupling *
-                                         (divE2D
-                                          + ooy * h_UU_ww * vars.chi * vars.Ey
-                                          - 2. * fprime * EdotDphi)
-                                          - kappa_E * vars.Xi);
-
+rhs.Lambda = advec.Lambda + vars.lapse * ( divB3D - kappa_B * vars.Lambda);
+rhs.Xi = advec.Xi + vars.lapse * coupling * (divE3D - 2. * fprime * EdotDphi)
+                                          - vars.lapse * kappa_E * vars.Xi;
 
 FOR (i)
 {
