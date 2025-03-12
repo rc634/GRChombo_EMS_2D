@@ -242,94 +242,99 @@ template <class coupling_t> class EMSCartoonLorentzScalars
             EDphi += Ei[i] * d1.phi[j] * h_UU[i][j] * vars.chi;
             electric_constraint += DiEj[i][j] * h_UU[i][j] * vars.chi;
             magnetic_constraint += DiBj[i][j] * h_UU[i][j] * vars.chi;
-            electric_constraint += Ei[i] * drootgammathing[j]
-                                              * h_UU[i][j] * vars.chi;
-            magnetic_constraint += Bi[i] * drootgammathing[j]
-                                              * h_UU[i][j] * vars.chi;
+            electric_constraint += -1.5 * h_UU[i][j] * Ei[i] * d1.chi[j];
+            magnetic_constraint += -1.5 * h_UU[i][j] * Bi[i] * d1.chi[j];
         }
         FOR1(i)
         {
             electric_constraint += Ei[i] * div_gamma_inv[i];
-            magnetic_constraint += Ei[i] * div_gamma_inv[i];
+            magnetic_constraint += Bi[i] * div_gamma_inv[i];
         }
         // cartoon terms
         electric_constraint += ooy*vars.Ey*vars.chi/vars.hww;
         magnetic_constraint += ooy*vars.By*vars.chi/vars.hww;
 
 
+        // electric_constraint = coupling_of_phi * ( electric_constraint
+        //                        - 2. * EDphi * f_prime_of_phi );
+        //
+        // H2norm_maxwell_constraints = electric_constraint * electric_constraint
+        //                             + magnetic_constraint * magnetic_constraint;
+
+
         electric_constraint = coupling_of_phi * ( electric_constraint
                                - 2. * EDphi * f_prime_of_phi );
 
-        H2norm_maxwell_constraints = electric_constraint * electric_constraint
-                                    + magnetic_constraint * magnetic_constraint;
-
-
-
-
+        H2norm_maxwell_constraints = electric_constraint;
 
         ////////////////////////////////////////////
         // Mass and Charge Scalars
         ////////////////////////////////////////////
 
         // ADM mass calculation
-        data_t g_rr = 0.;
+        // data_t g_rr = 0.;
         data_t ADM_scalar = 0.;
-        Tensor<1, data_t, 3> dxdr; // equiv to sL, non normalised radial normal
-        Tensor<1, data_t, 3> sU; // non-normalised unit upstairs radial vec
-        dxdr[0] = x/safe_r;
-        dxdr[1] = y/safe_r;
-        dxdr[2] = z/safe_r;
-        sU[0] = 0.;
-        sU[1] = 0.;
-        sU[2] = 0.;
-
-        FOR2(i,j)
-        {
-            sU[i] += gamma_UU[i][j]*dxdr[j];
-            g_rr += vars.h[i][j]*dxdr[i]*dxdr[j]/vars.chi;
-        }
-        FOR3(i,j,k)
-        {
-            ADM_scalar += sU[i]*gamma_UU[j][k]*(
-                      (d1.h[i][k][j]-d1.h[j][k][i])/vars.chi
-                       -(d1.chi[j]*vars.h[i][k] -
-                         d1.chi[i]*vars.h[j][k])*pow(vars.chi,-2));                              ;
-        }
+        // Tensor<1, data_t, 3> dxdr; // equiv to sL, non normalised radial normal
+        // Tensor<1, data_t, 3> sU; // non-normalised unit upstairs radial vec
+        // dxdr[0] = x/safe_r;
+        // dxdr[1] = y/safe_r;
+        // dxdr[2] = z/safe_r;
+        // sU[0] = 0.;
+        // sU[1] = 0.;
+        // sU[2] = 0.;
+        //
+        // for (int i = 0; i < 3; i++) {
+        // for (int j = 0; j < 3; j++) {
+        //     sU[i] += gamma_UU[i][j]*dxdr[j];
+        //     g_rr += vars.h[i][j]*dxdr[i]*dxdr[j]/vars.chi;
+        // }}
+        // for (int i = 0; i < 3; i++) {
+        // for (int j = 0; j < 3; j++) {
+        // for (int k = 0; k < 3; k++) {
+        //     ADM_scalar += sU[i]*gamma_UU[j][k]*(
+        //               (d1.h[i][k][j]-d1.h[j][k][i])/vars.chi
+        //                -(d1.chi[j]*vars.h[i][k] -
+        //                  d1.chi[i]*vars.h[j][k])*pow(vars.chi,-2));                              ;
+        // }}}
 
         data_t Y_00 = 1./sqrt(4.*M_PI);
+        data_t four_pi = M_PI*4.;
 
         // charge calculation
         data_t EUr = 0.; // E^r
+        data_t drdchi = 0.; // partial_r chi
         Tensor<1, data_t, 3> drdx;
         drdx[0] = x/safe_r;
         drdx[1] = y/safe_r;
         drdx[2] = z/safe_r;
 
-        Tensor<2, data_t, 3> gamma_polar;
         FOR2(i,j)
         {
-            EUr += Ei[i] * drdx[j] * gamma_UU[i][j];
-            gamma_polar[i][j] = 0.;
+            EUr += Ei[i] * drdx[j] * vars.chi * h_UU[i][j];
         }
-
-        FOR4(i,j,m,n)
+        FOR(i)
         {
-            gamma_polar[i][j] += vars.h[m][n]/vars.chi * dxc_dxp[m][i] * dxc_dxp[n][j];
+            drdchi += drdx[i] * d1.chi[i];
         }
-        data_t det_gamma_polar = TensorAlgebra::compute_determinant_sym(gamma_polar);
-        data_t root_gamma_polar = sqrt(det_gamma_polar);
+        //cartoon terms = 0
 
-        data_t Q_scalar = EUr * coupling_of_phi * root_gamma_polar / sintheta;
-        Q_scalar = Q_scalar/sqrt(2. * M_PI); // from weird def of Q in lagragean
-        ADM_scalar = ADM_scalar * root_gamma_polar / (sintheta * 16. * M_PI);
+
+        data_t Q_scalar = four_pi * coupling_of_phi * r * r * pow(vars.chi,-1.5) * EUr;
+        Q_scalar = Q_scalar / sqrt(2. * M_PI); // from definition of E in Lagrangean
+
+        // ADM_scalar = -r^2 d_psi/d_r from robins thesis
+        ADM_scalar = 0.5*r*r*pow(vars.chi,-1.5)*drdchi;
 
         // store variables
         current_cell.store_vars(FF, c_mod_F);
         current_cell.store_vars(H2norm_maxwell_constraints, c_maxwell);
         // dividing by Y_00 makes the f_00 coeffcients actaully equal a regular
         // integral round teh circle
-        current_cell.store_vars(ADM_scalar/Y_00, c_Mscalar);
-        current_cell.store_vars(Q_scalar/Y_00, c_Qscalar);
+
+        // i think the 4pi here is a complication of the 2d code
+        // it was calibrated by integrating 1 over a semi-circle centred y=0, x=L/2
+        current_cell.store_vars(ADM_scalar/Y_00/four_pi, c_Mscalar);
+        current_cell.store_vars(Q_scalar/Y_00/four_pi, c_Qscalar);
     }
 };
 

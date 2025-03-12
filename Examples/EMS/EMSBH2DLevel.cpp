@@ -193,6 +193,11 @@ void EMSBH2DLevel::specificPostTimeStep()
     BoxLoops::loop(
             Constraints<CouplingFunction>(m_dx, my_coupling, m_p.m_G_Newton),
                        m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
+    BoxLoops::loop(
+            EMSCartoonLorentzScalars<CouplingFunction>(m_dx,
+                                       m_p.extraction_params.center,
+                                            m_p.coupling_function_params),
+                      m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
 
 
 #ifdef USE_AHFINDER
@@ -301,6 +306,34 @@ void EMSBH2DLevel::specificPostTimeStep()
         }
         min_chi_file.write_time_data_line({min_chi});
 
+
+        // Do Mass Charge Integration
+        if (m_p.activate_mq_extraction == 1 &&
+            at_level_timestep_multiple(
+                m_p.extraction_params.min_extraction_level()))
+        {
+            CH_TIME("EMDBHLevel::doAnalysis::MassChargeExtraction");
+
+            fillAllGhosts();
+
+            // Do the extraction on the min extraction level
+            if (m_level == m_p.extraction_params.min_extraction_level())
+            {
+                if (m_verbosity)
+                {
+                    pout() << "BinaryBSLevel::specificPostTimeStep:"
+                              " Extracting MassCharge integrals."
+                           << endl;
+                }
+
+                // Refresh the interpolator and do the interpolation
+                m_bh_amr.m_interpolator->refresh();
+                CrudeMassChargeExtraction mq_extraction
+                                                  (m_p.mq_extraction_params,
+                                          m_dt, m_time, first_step, m_restart_time);
+                mq_extraction.execute_query(m_bh_amr.m_interpolator);
+            }
+        }
 
         // Do Electromagnetic Radiation Integration
         if (m_p.activate_pheyl_extraction == 1 &&

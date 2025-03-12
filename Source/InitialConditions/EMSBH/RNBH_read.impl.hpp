@@ -164,6 +164,7 @@ template <class data_t> void RNBH_read::compute(Cell<data_t> current_cell) const
     // vars.chi = bh_chi;
 
     // don't need to loop z direction
+    vars.K = 0.;
     FOR2(i,j)
     {
         vars.h[i][j] = vars.chi*gamma[i][j];
@@ -175,15 +176,151 @@ template <class data_t> void RNBH_read::compute(Cell<data_t> current_cell) const
     vars.Aww = 0.;
 
 
+    // electric field
+    vars.Ex = dr_dx * Er;
+    vars.Ey = dr_dy * Er;
+    vars.Ez = dr_dz * Er;
+
+    if (binary)
+    {
+      ////////////////////////////
+      // read 2nd black hole
+      ////////////////////////////
+
+      // coord objects
+      x = coords.x + 0.5 * separation;
+      z = 0.; // coords.z;
+      y = coords.y;
+      cart_coords[0] = x; // only need to reset x here
+
+      // radii and safe (divisible) radii
+      r = sqrt(x * x + y * y + z * z);
+      safe_r = sqrt(x * x + y * y + z * z + 10e-20);
+      rho = sqrt(x * x + y * y);
+      safe_rho = sqrt(x * x + y * y + 10e-20);
+
+      // trig functions
+      sintheta = rho/safe_r;
+      costheta = z/safe_r;
+      sinphi = y/safe_rho;
+      cosphi = x/safe_rho;
+
+      // jacobeans
+      dx_dr = cosphi*sintheta;
+      dy_dr = sinphi*sintheta;
+      dz_dr = costheta;
+      dr_dx = (x / safe_r);
+      dr_dy = (y / safe_r);
+      dr_dz = (z / safe_r);
+
+      // partial cartesian coords (i) by partial polar coords (j)
+      // dxc_dxp[i][j]
+      // i = {x,y,z}
+      // j = {r,th,ph}
+      dxc_dxp[0][0] = dx_dr;
+      dxc_dxp[1][0] = dy_dr;
+      dxc_dxp[2][0] = dz_dr;
+      dxc_dxp[0][1] = r * cosphi * costheta;
+      dxc_dxp[1][1] = r * sinphi * costheta;
+      dxc_dxp[2][1] = -r * sintheta;
+      dxc_dxp[0][2] = -r * sinphi * sintheta;
+      dxc_dxp[1][2] = r * cosphi * sintheta;
+      dxc_dxp[2][2] = 0.; // dz/dphi=0
+
+      // partial polar coords (i) by partial cartesian coords (j)
+      // dxp_dxc[i][j]
+      // i = {r,th,ph}
+      // j = {x,y,z}
+      dxp_dxc[0][0] = dr_dx;
+      dxp_dxc[0][1] = dr_dy;
+      dxp_dxc[0][2] = dr_dz;
+      dxp_dxc[1][0] = x * z / (safe_r * safe_r * safe_rho);
+      dxp_dxc[1][1] = y * z / (safe_r * safe_r * safe_rho);
+      dxp_dxc[1][2] = - rho / (safe_r * safe_r);
+      dxp_dxc[2][0] = - y / (safe_rho * safe_rho);
+      dxp_dxc[2][1] = x / (safe_rho * safe_rho);
+      dxp_dxc[2][2] = 0.; // dphi/dz=0
+
+
+      // gamma_polar = 1/X^2 (a dr^2 + b r^2 (dth^2 + sin^2(th) dph^2))
+      psi = m_1d_sol.calc_psi(r);
+      Er = m_1d_sol.calc_Er(r);
+
+
+      // spatial metrics
+      //gamma_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+      gamma_polar[0][0] = psi*psi;
+      gamma_polar[1][1] = r*r*psi*psi;;
+      gamma_polar[2][2] = gamma_polar[1][1]*pow(sintheta,2);
+      // gamma_polar_inv[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+      gamma_polar_inv[0][0] = 1./gamma_polar[0][0];
+      gamma_polar_inv[1][1] = 1./gamma_polar[1][1];
+      gamma_polar_inv[2][2] = 1./gamma_polar[2][2];
+
+
+      // create cartesian metric from transformation of polar version
+      // explicit loops here include z direction
+      for (int i=0; i<3; i++){
+      for (int j=0; j<3; j++){
+          gamma[i][j] = 0.;
+          gamma_inv[i][j] = 0.;
+      for (int m=0; m<3; m++){
+      for (int n=0; n<3; n++){
+          gamma[i][j] += gamma_polar[m][n]*dxp_dxc[m][i]*dxp_dxc[n][j];
+          //gamma_inv[i][j] += gamma_polar_inv[m][n]*dxc_dxp[m][i]*dxc_dxp[n][j];
+          gamma_inv[i][j] += gamma_polar_inv[m][n]*dxc_dxp[i][m]*dxc_dxp[j][n];
+      }}}}
+
+      // double bh_chi = pow(1. + 0.5/r,-4);
+      // set shift
+      vars.shift[0] = 0.;
+      vars.shift[1] = 0.;
+
+      // set geometry
+      // metric det (det_gamma)
+      det_gamma = gamma[0][0]*gamma[1][1]*gamma[2][2];
+      det_gamma += 2.*gamma[0][2]*gamma[0][1]*gamma[1][2];
+      det_gamma -= gamma[0][0]*pow(gamma[1][2],2);
+      det_gamma -= gamma[1][1]*pow(gamma[2][0],2);
+      det_gamma -= gamma[2][2]*pow(gamma[0][1],2);
+      // assign real chi from power 1/3 of metric det
+      data_t chi1 = vars.chi;
+      data_t chi2 = pow(det_gamma,-1./3.);
+      vars.chi = (chi1*chi2)/(chi2 + chi1 - chi1*chi2);
+      vars.lapse = sqrt(vars.chi);
+
+      // don't need to loop z direction
+      vars.K += 0.;
+      FOR2(i,j)
+      {
+          vars.h[i][j] += chi2*gamma[i][j]-kroneka_delta[i][j];
+          vars.A[i][j] += 0.;
+      }
+
+      //cartoon terms
+      vars.hww += chi2*gamma[2][2]-1.;
+      vars.Aww += 0.;
+
+      // fix the fact that superposing probbaly broke det(h) = 1
+      data_t det_h = vars.h[0][0]*vars.h[1][1]*vars.hww
+                   - vars.h[0][1]*vars.h[1][0]*vars.hww;
+      data_t chi_h = pow(det_h,-1./3.);
+
+      vars.chi *= chi_h;
+      vars.hww /= chi_h;
+      FOR2(i,j) vars.h[i][j] /= chi_h;
+
+
+      // electric field
+      vars.Ex += dr_dx * Er;
+      vars.Ey += dr_dy * Er;
+      vars.Ez += dr_dz * Er;
+    }
 
     // scalar field
     vars.phi = 0.;
     vars.Pi = 0.;
 
-    // electric field
-    vars.Ex = dr_dx * Er;
-    vars.Ey = dr_dy * Er;
-    vars.Ez = dr_dz * Er;
 
 
     ////////////////////////////

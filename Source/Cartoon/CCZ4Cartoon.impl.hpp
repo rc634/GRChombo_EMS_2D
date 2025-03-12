@@ -466,15 +466,15 @@ epsLLL[2][0][1] = eps012;
 epsLLL[2][1][0] = -eps012;
 
 // some derivatives of tensors
-Tensor<3, data_t, 3> dgammainv = {0.}; // d[i] gammainv ^[j,k]
-Tensor<3, data_t, 3> dgamma3d = {0.}; // d[i] gamma [j,k]
+// Tensor<3, data_t, 3> dgammainv = {0.}; // d[i] gammainv ^[j,k]
+// Tensor<3, data_t, 3> dgamma3d = {0.}; // d[i] gamma [j,k]
 Tensor<2, data_t, 3> dE; // d[i] E[j] = dE[i][j]
 Tensor<2, data_t, 3> dB; // d[i] B[j] = dB[i][j]
 Tensor<2, data_t> Kij; // K_{ij}
-data_t Kzz = vars.Aww / vars.chi + vars.K * vars.hww / 3.;
+data_t Kzz = (vars.Aww + vars.K*vars.hww/3.)/vars.chi;
 FOR2(i,j)
 {
-    Kij[i][j] = vars.A[i][j]/vars.chi + vars.K*vars.h[i][j]/3.;
+    Kij[i][j] = (vars.A[i][j] + vars.K*vars.h[i][j]/3.)/vars.chi;
 }
 
 FOR(i)
@@ -516,31 +516,32 @@ FOR2(i,j)
 }
 h_UU_3d[2][2] = h_UU_ww;
 
+/////////// OLD METHOD KEPT JUST INCASE
 
-FOR3(i,j,k)
-{
-    dgamma3d[i][j][k] = d1.h[j][k][i] / vars.chi
-                       - vars.h[j][k] * d1.chi[i] * pow(vars.chi , -2);
-}
-dgamma3d[0][2][2] = d1.hww[0] / vars.chi
-                       - vars.hww * d1.chi[0] * pow(vars.chi , -2);
-dgamma3d[1][2][2] = d1.hww[1] / vars.chi
-                      - vars.hww * d1.chi[1] * pow(vars.chi , -2);
+// FOR3(i,j,k)
+// {
+//     dgamma3d[i][j][k] = d1.h[j][k][i] / vars.chi
+//                        - vars.h[j][k] * d1.chi[i] * pow(vars.chi , -2);
+// }
+// dgamma3d[0][2][2] = d1.hww[0] / vars.chi
+//                        - vars.hww * d1.chi[0] * pow(vars.chi , -2);
+// dgamma3d[1][2][2] = d1.hww[1] / vars.chi
+//                       - vars.hww * d1.chi[1] * pow(vars.chi , -2);
+//
+// dgamma3d[2][0][2] = ooy * vars.h[0][1] / vars.chi;
+// dgamma3d[2][2][0] = dgamma3d[2][0][2];
+// dgamma3d[2][1][2] = ooy * (vars.h[1][1] - vars.hww)/vars.chi;
+// dgamma3d[2][2][1] = dgamma3d[2][1][2];
 
-dgamma3d[2][0][2] = ooy * vars.h[0][1] / vars.chi;
-dgamma3d[2][2][0] = dgamma3d[2][0][2];
-dgamma3d[2][1][2] = ooy * (vars.h[1][1] - vars.hww)/vars.chi;
-dgamma3d[2][2][1] = dgamma3d[2][1][2];
-
-for (int i=0; i<3; i++){
-for (int a=0; a<3; a++){
-for (int b=0; b<3; b++){
-for (int c=0; c<3; c++){
-for (int d=0; d<3; d++){
-    dgammainv[i][a][d] += - vars.chi * vars.chi
-                              * h_UU_3d[c][d] * h_UU_3d[a][b]
-                              * dgamma3d[i][b][c];
-}}}}}
+// for (int i=0; i<3; i++){
+// for (int a=0; a<3; a++){
+// for (int b=0; b<3; b++){
+// for (int c=0; c<3; c++){
+// for (int d=0; d<3; d++){
+//     dgammainv[i][a][d] += - vars.chi * vars.chi
+//                               * h_UU_3d[c][d] * h_UU_3d[a][b]
+//                               * dgamma3d[i][b][c];
+// }}}}}
 
 
 Tensor<2, data_t, 3> the_E_term;
@@ -548,15 +549,17 @@ Tensor<2, data_t, 3> the_B_term;
 for (int k = 0; k <3; k++){
 for (int j = 0; j <3; j++){
     the_E_term[k][j] = B[k] * d_lapse_3d[j] + vars.lapse * dB[j][k]
-                            - 2. * fprime * B[k] * d_phi_3d[j];
+                            - 2. * vars.lapse * fprime * B[k] * d_phi_3d[j];
     the_B_term[k][j] = - E[k] * d_lapse_3d[j] - vars.lapse * dE[j][k];
 }}
 
 // Make some objects we need to keep the equations readable
 data_t FF = 0.;
 data_t EdotDphi = 0.;
-data_t divB3D = 0.;
-data_t divE3D = 0.;
+// data_t divB3D = 0.;
+// data_t divE3D = 0.;
+data_t divE = 0.;
+data_t divB = 0.;
 data_t EKx = 0., EKy = 0., EzKzz = vars.Ez * vars.chi * h_UU_ww * Kzz;
 data_t BKx = 0., BKy = 0., BzKzz = vars.Bz * vars.chi * h_UU_ww * Kzz;
 FOR2(i,j)
@@ -569,27 +572,43 @@ FOR2(i,j)
 
     EdotDphi += vars.chi * h_UU[i][j] * E[i] * d1.phi[j];
 
-    divE3D += -3./2. * h_UU[i][j] * E[i] * d1.chi[j];
-    divE3D += vars.chi * h_UU[i][j] * dE[i][j]; // the "dE term"
+    // divE3D += -3./2. * h_UU[i][j] * E[i] * d1.chi[j];
+    // divE3D += vars.chi * h_UU[i][j] * dE[i][j]; // the "dE term"
+    //
+    // divB3D += -3./2. * h_UU[i][j] * B[i] * d1.chi[j];
+    // divB3D += vars.chi * h_UU[i][j] * dB[i][j]; // the "dB term"
 
-    divB3D += -3./2. * h_UU[i][j] * B[i] * d1.chi[j];
-    divB3D += vars.chi * h_UU[i][j] * dB[i][j]; // the "dB term"
+    divE += vars.chi*h_UU[i][j]*dE[i][j];
+    divE += -0.5 * h_UU[i][j]*E[j]*d1.chi[i];
+    divB += vars.chi*h_UU[i][j]*dB[i][j];
+    divB += -0.5 * h_UU[i][j]*B[j]*d1.chi[i];
 
     FF += 2. * vars.chi * h_UU[i][j] * (B[i] * B[j] - E[i] * E[j]);
 }
 
+
+
 //cartoon terms
-divE3D += ooy * h_UU_ww * vars.Ey * vars.chi; // the cartoon "dE term"
-divB3D += ooy * h_UU_ww * vars.By * vars.chi; // the cartoon "dB term"
+// divE3D += ooy * h_UU_ww * vars.Ey * vars.chi; // the cartoon "dE term"
+// divB3D += ooy * h_UU_ww * vars.By * vars.chi; // the cartoon "dB term"
+divE += ooy * vars.chi * h_UU_ww * vars.Ey;
+divB += ooy * vars.chi * h_UU_ww * vars.By;
 FF += 2. * vars.chi * h_UU_ww * (B[2] * B[2] - E[2] * E[2]);
 
 // need 3d loop here as d_z gamma^zx =/=0 (even thought gamma^xz=0)
 // same arguemtn for gamma^zy ...
-for (int i = 0; i <3; i++){
-for (int j = 0; j <3; j++){
-  divE3D += dgammainv[i][i][j] * E[j];
-  divB3D += dgammainv[i][i][j] * B[j];
-}}
+// for (int i = 0; i <3; i++){
+// for (int j = 0; j <3; j++){
+//   divE3D += dgammainv[i][i][j] * E[j];
+//   divB3D += dgammainv[i][i][j] * B[j];
+// }}
+// chris contracted is for h_ij not gamma_ij
+FOR(i)
+{
+    //divE += -vars.Gamma[i]*E[i]*vars.chi;
+    divE += -chris_contracted[i]*E[i]*vars.chi;
+    divB += -chris_contracted[i]*B[i]*vars.chi;
+}
 
 
 
@@ -603,7 +622,7 @@ data_t LieBetaEx = advec.Ex
                     + vars.Ex * d1.shift[0][0] + vars.Ey * d1.shift[1][0];
 data_t LieBetaEy = advec.Ey
                     + vars.Ex * d1.shift[0][1] + vars.Ey * d1.shift[1][1];
-data_t LieBetaEz = advec.Ez + ooy * vars.Ez * vars.shift[iy];
+data_t LieBetaEz = advec.Ez + ooy * vars.Ez * vars.shift[1];
 data_t LieBetaBx = advec.Bx
                     + vars.Bx * d1.shift[0][0] + vars.By * d1.shift[1][0];
 data_t LieBetaBy = advec.By
@@ -614,34 +633,32 @@ data_t LieBetaBz = advec.Bz + ooy * vars.Bz * vars.shift[iy];
 // The actual equations
 rhs.phi = advec.phi - vars.lapse * vars.Pi;
 rhs.Pi = advec.Pi + vars.lapse * vars.K * vars.Pi
-                  - ooy * h_UU_ww * vars.chi * d1.phi[iy]
+                  - ooy * vars.lapse * h_UU_ww * vars.chi * d1.phi[iy]
                   -0.5 * vars.lapse * fprime * coupling * FF;
 
-rhs.Ex = LieBetaEx + vars.lapse * (vars.K * vars.Ex - 2. * EKx
-                                   + d1.Xi[0]
+rhs.Ex = LieBetaEx + vars.lapse * (vars.K * vars.Ex - 2. * EKx + d1.Xi[0]
                                    - 2. * fprime * vars.Pi * vars.Ex);
-rhs.Ey = LieBetaEy + vars.lapse * (vars.K * vars.Ey - 2. * EKy
-                                   + d1.Xi[1]
+rhs.Ey = LieBetaEy + vars.lapse * (vars.K * vars.Ey - 2. * EKy + d1.Xi[1]
                                    - 2. * fprime * vars.Pi * vars.Ey);
 rhs.Ez = LieBetaEz + vars.lapse * (vars.K * vars.Ez - 2. * EzKzz
                                    - 2. * fprime * vars.Pi * vars.Ez);
-rhs.Bx = LieBetaBx + vars.lapse * (vars.K * vars.Bx - 2. * BKx
-                                  + d1.Lambda[0]
-                                  - 2. * fprime * vars.Pi * vars.Ex);
-rhs.By = LieBetaBy + vars.lapse * (vars.K * vars.By - 2. * BKy
-                                  + d1.Lambda[1]
-                                  - 2. * fprime * vars.Pi * vars.Ey);
+rhs.Bx = LieBetaBx + vars.lapse * (vars.K * vars.Bx - 2. * BKx + d1.Lambda[0]);
+rhs.By = LieBetaBy + vars.lapse * (vars.K * vars.By - 2. * BKy + d1.Lambda[1]);
 rhs.Bz = LieBetaBz + vars.lapse * (vars.K * vars.Bz - 2. * BzKzz);
-rhs.Lambda = advec.Lambda + vars.lapse * ( divB3D - kappa_B * vars.Lambda);
-rhs.Xi = advec.Xi + vars.lapse * coupling * (divE3D - 2. * fprime * EdotDphi)
+
+// FIX THE DIV B EQN WITH BETTER DIVERGENCE CALC! LIKE E's
+rhs.Lambda = advec.Lambda + vars.lapse * ( divB - kappa_B * vars.Lambda);
+rhs.Xi = advec.Xi + vars.lapse * coupling * (divE - 2. * fprime * EdotDphi)
                                           - vars.lapse * kappa_E * vars.Xi;
 
+// strictly the Gamma here absorbs the Z vector automatically.
+// chris_contracted[i] doesnt, it is -partial_i h^{ij}
 FOR (i)
 {
-    rhs.Pi += vars.chi * vars.lapse * vars.Gamma[i] * d1.phi[i];
+    rhs.Pi += vars.chi * vars.lapse * chris_contracted[i] * d1.phi[i];
+    // rhs.Pi += vars.chi * vars.lapse * vars.Gamma[i] * d1.phi[i];
 }
 
-// note the 0.5*d1.chi term comes from the conformal christoffel
 FOR2  (i,j)
 {
     rhs.Pi += h_UU[i][j]*( - vars.chi * vars.lapse * d2.phi[i][j]

@@ -21,7 +21,7 @@ class CrudeMassChargeExtraction : public SphericalExtraction
 
     //! The constructor
     CrudeMassChargeExtraction(
-                   spherical_extraction_params_t &a_params, double a_dt,
+             const spherical_extraction_params_t &a_params, double a_dt,
                    double a_time, bool a_first_step,
                    double a_restart_time = 0.0)
         : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
@@ -33,7 +33,7 @@ class CrudeMassChargeExtraction : public SphericalExtraction
 
     //! The old constructor which assumes it is called in specificPostTimeStep
     //! so the first time step is when m_time == m_dt
-    CrudeMassChargeExtraction(spherical_extraction_params_t a_params, double a_dt,
+    CrudeMassChargeExtraction(const spherical_extraction_params_t &a_params, double a_dt,
                    double a_time, double a_restart_time = 0.0)
         : CrudeMassChargeExtraction(a_params, a_dt, a_time, (a_dt == a_time),
                          a_restart_time)

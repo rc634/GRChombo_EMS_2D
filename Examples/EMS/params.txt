@@ -10,15 +10,15 @@ verbosity = 0
 # output_path = "" # Main path for all files. Must exist!
 chk_prefix = chk/EMS_
 plot_prefix = plt/EMS_Plot_
-# restart_file = chk/EMS_000080.2d.hdf5
+#restart_file = chk/EMS_000220.2d.hdf5
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
 checkpoint_interval = 20
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 1
-num_plot_vars = 23
-plot_vars = chi K lapse h11 h12 h22 hww A11 phi Pi Bx By Bz Ex Ey Ez Lambda Xi Weyl4_Re Pheyl2_Re mod_F maxwell Ham
+plot_interval = 20
+num_plot_vars = 27
+plot_vars = chi K lapse h11 h12 h22 hww A11 A12 A22 Aww phi Pi Bx By Bz Ex Ey Ez Lambda Xi Weyl4_Re Pheyl2_Re mod_F maxwell Ham Mscalar
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
@@ -38,16 +38,16 @@ print_progress_only_to_rank_0 = 1
 
 # Set up grid spacings and regrid params
 # NB - the N values need to be multiples of block_factor
-N1 = 512
-N2 = 512
-N3 = 512
+N1 = 1024
+N2 = 1024
+N3 = 1024
 
 # Length of longest box side, dx_coarsest = L/N(max)
 # NB if non cubic, this determines dx for all sides
-L = 128
+L = 512
 
 # Maximum number of times you can regrid above coarsest level
-max_level = 4 # There are (max_level+1) grids, so min is zero
+max_level = 5 # There are (max_level+1) grids, so min is zero
 
 # Frequency of regridding at each level and thresholds on the tagging
 # Need one for each level except the top one, ie max_level items
@@ -56,17 +56,17 @@ max_level = 4 # There are (max_level+1) grids, so min is zero
 regrid_interval   =   1 0 0 0 0 0 0 0 0 0 0 0  0
 regrid_threshold_A = 6.
 regrid_threshold_phi = 0.3
-regrid_threshold_chi = 0.3
+regrid_threshold_chi = 0.14
 
 # Max and min box sizes
-max_box_size = 32
+max_box_size = 128
 min_box_size = 16
 
 # tag_buffer_size = 3
 grid_buffer_size = 32
 fill_ratio = 0.7
 # num_ghosts = 3
-# center = 256.0 256.0 256.0 # defaults to center of the grid
+center = 0.0 0.0 # defaults to center of the grid
 
 #################################################
 # Boundary Conditions parameters
@@ -77,7 +77,7 @@ isPeriodic = 0 0
 # 0 = static, 1 = sommerfeld, 2 = reflective, 3 interpoaltive
 # (see BoundaryConditions.hpp for details)
 hi_boundary = 1 1
-lo_boundary = 1 2
+lo_boundary = 2 2
 
 # if reflective boundaries selected, must set
 # parity of all vars (in order given by UserVariables.hpp)
@@ -118,8 +118,8 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 G_Newton = 1.0
 
 gridpoints = 50000 # resolution of initial data
-binary = false # make false for one object
-separation = 128.0 # separation in x
+binary = true # make false for one object
+separation = 32.0 # separation in x
 # centre of the star - only uncomment if you want star off centre
 star_centre = 0 0 # ITS 2D IN THIS CODE!!!!!!
 # for reissner-nordstrom initial data, mass used in horizon finder initial guess too
@@ -148,9 +148,9 @@ Ylm_r0 = 80.0 # initial radius of perturbation shell
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
-# stop_time = 10.0
+stop_time = 20000.0
 # max_steps = 1
-stop_time = 100.
+# stop_time = 100.
 
 # Spatial derivative order (only affects CCZ4 RHS)
 max_spatial_derivative_order = 4 # can be 4 or 6
@@ -184,9 +184,9 @@ sigma = 2.0 # 1.0
 # Extraction parameters
 
 activate_extraction = 1
-num_extraction_radii = 1
-extraction_radii = 8.
-extraction_levels = 0
+num_extraction_radii = 5
+extraction_radii = 40. 80. 160. 240. 320.
+extraction_levels = 0 0 0 0 0
 num_points_phi = 72
 num_points_theta = 108
 # l m for spherical harmonics
@@ -269,11 +269,11 @@ rs_modes = 0 0
 
 # M and Q extraction params (mq)
 #default center to grid center, uncomment to change
-mq_extraction_center = 0 0 0
-activate_mq_extraction = 0
-mq_num_extraction_radii = 2
-mq_extraction_radii = 20. 40. # can use extraction_radius for one radius
-mq_extraction_levels = 0 0  # can use extraction_level for one radius
+mq_extraction_center = 0 0
+activate_mq_extraction = 1
+mq_num_extraction_radii = 5
+mq_extraction_radii = 5. 10. 20. 40. 80. # can use extraction_radius for one radius
+mq_extraction_levels = 0 0 0 0 0 # can use extraction_level for one radius
 mq_num_points_phi = 64 64
 mq_num_points_theta = 60 60
 mq_num_modes = 1
