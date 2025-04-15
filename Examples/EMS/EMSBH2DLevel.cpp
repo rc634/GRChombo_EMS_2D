@@ -83,8 +83,11 @@ void EMSBH2DLevel::initialData()
     //                      m_p.m_G_Newton, m_dx, m_verbosity);
 
 
-    // First initalise a RNBH object - analytic test
-    RNBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+    // // First initalise a RNBH object - analytic test
+    // RNBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+    //                     m_p.m_G_Newton, m_dx, m_verbosity);
+    // Read EMS BH, THIS IT NOT A TEST
+    EMSBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
                         m_p.m_G_Newton, m_dx, m_verbosity);
     emdbh.compute_1d_solution();
 
@@ -122,7 +125,7 @@ void EMSBH2DLevel::prePlotLevel()
             Constraints<CouplingFunction>(m_dx, my_coupling, m_p.m_G_Newton),
 
             EMSCartoonLorentzScalars<CouplingFunction>(m_dx,
-                                        m_p.extraction_params.center,
+                                        m_p.mq_extraction_params.center,
                                              m_p.coupling_function_params)
 
             //EMTensor<EinsteinMaxwellScalarFieldWithCoupling>(
@@ -150,6 +153,7 @@ void EMSBH2DLevel::specificEvalRHS(GRLevelData &a_soln,
     CCZ4Cartoon<MovingPunctureGauge,FourthOrderDerivatives, CouplingFunction>
     my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
                                            m_p.m_G_Newton, m_p.formulation);
+    // zero diagnostic vars
     SetValue set_analysis_vars_zero(0.0, Interval(c_Xi + 1, NUM_VARS - 1));
     auto compute_pack =
         make_compute_pack(my_ccz4_cartoon, set_analysis_vars_zero);
@@ -184,6 +188,7 @@ void EMSBH2DLevel::specificPostTimeStep()
         (m_time == 0.); // this form is used when 'specificPostTimeStep' was
                         // called during setup at t=0 from Main
 
+
     fillAllGhosts();
     CouplingFunction my_coupling(m_p.coupling_function_params);
 
@@ -195,11 +200,13 @@ void EMSBH2DLevel::specificPostTimeStep()
                        m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
     BoxLoops::loop(
             EMSCartoonLorentzScalars<CouplingFunction>(m_dx,
-                                       m_p.extraction_params.center,
+                                       m_p.mq_extraction_params.center,
                                             m_p.coupling_function_params),
                       m_state_new, m_state_diagnostics, EXCLUDE_GHOST_CELLS);
 
-
+        //////////////////////////////////////////////
+        // Horizon finding (if used)
+        //////////////////////////////////////////////
 #ifdef USE_AHFINDER
     if (m_p.AH_activate && m_level == m_p.AH_params.level_to_run)
     {
@@ -223,6 +230,10 @@ void EMSBH2DLevel::specificPostTimeStep()
     }
 #endif
 
+
+    //////////////////////////////////////////////
+    // Gravitational Wave Extraction
+    //////////////////////////////////////////////
     if (m_p.activate_extraction == 1 &&
        at_level_timestep_multiple(m_p.extraction_params.min_extraction_level()))
     {
@@ -244,12 +255,9 @@ void EMSBH2DLevel::specificPostTimeStep()
         }
     }
 
-    // if (at_level_timestep_multiple(0))
-    // {
-    //     BoxLoops::loop(NoetherCharge(), m_state_new, m_state_diagnostics,
-    //               EXCLUDE_GHOST_CELLS);
-    // }
-
+    //////////////////////////////////////////////
+    // Constraints file and ADM mass
+    //////////////////////////////////////////////
     if (m_level == 0)
     {
         bool first_step = (m_time == 0.);
@@ -283,18 +291,9 @@ void EMSBH2DLevel::specificPostTimeStep()
             M_ADM_file.write_time_data_line({M_ADM});
         }
 
-        // double noether_charge = amr_reductions.sum(c_N);
-        // SmallDataIO noether_charge_file("NoetherCharge", m_dt, m_time,
-        //                                 m_restart_time,
-        //                                 SmallDataIO::APPEND,
-        //                                 first_step);
-        // noether_charge_file.remove_duplicate_time_data();
-        // if (m_time == 0.)
-        // {
-        //     noether_charge_file.write_header_line({"Noether Charge"});
-        // }
-        // noether_charge_file.write_time_data_line({noether_charge});
-
+        //////////////////////////////////////////////
+        // Do min chi extraction
+        //////////////////////////////////////////////
         double min_chi = amr_reductions.min(c_chi);
         SmallDataIO min_chi_file(m_p.data_path + "min_chi",
                                         m_dt, m_time, m_restart_time,
@@ -306,71 +305,120 @@ void EMSBH2DLevel::specificPostTimeStep()
         }
         min_chi_file.write_time_data_line({min_chi});
 
-
-        // Do Mass Charge Integration
-        if (m_p.activate_mq_extraction == 1 &&
-            at_level_timestep_multiple(
-                m_p.extraction_params.min_extraction_level()))
-        {
-            CH_TIME("EMDBHLevel::doAnalysis::MassChargeExtraction");
-
-            fillAllGhosts();
-
-            // Do the extraction on the min extraction level
-            if (m_level == m_p.extraction_params.min_extraction_level())
-            {
-                if (m_verbosity)
-                {
-                    pout() << "BinaryBSLevel::specificPostTimeStep:"
-                              " Extracting MassCharge integrals."
-                           << endl;
-                }
-
-                // Refresh the interpolator and do the interpolation
-                m_bh_amr.m_interpolator->refresh();
-                CrudeMassChargeExtraction mq_extraction
-                                                  (m_p.mq_extraction_params,
-                                          m_dt, m_time, first_step, m_restart_time);
-                mq_extraction.execute_query(m_bh_amr.m_interpolator);
-            }
-        }
-
-        // Do Electromagnetic Radiation Integration
-        if (m_p.activate_pheyl_extraction == 1 &&
-            at_level_timestep_multiple(
-                m_p.extraction_params.min_extraction_level()))
-        {
-            CH_TIME("EMSBH2DLevel::doAnalysis::EMRadExtraction");
-
-            fillAllGhosts();
-            // CouplingFunction coupling_function(m_p.coupling_function_params);
-            // EinsteinMaxwellScalarFieldWithCoupling emd_field(coupling_function);
-
-            // fill grid with pheyl2 im and real components
-            auto pheyl2_compute_pack = make_compute_pack(
-                Pheyl2(m_p.extraction_params.extraction_center,
-                                            m_p.coupling_function_params, m_dx));
-            BoxLoops::loop(pheyl2_compute_pack, m_state_new, m_state_diagnostics,
-                           EXCLUDE_GHOST_CELLS);
+        //////////////////////////////////////////////
+        // Do max phi extraction
+        //////////////////////////////////////////////
+        // double max_phi = amr_reductions.max(c_phi);
+        // SmallDataIO max_phi_file(m_p.data_path + "max_phi",
+        //                                 m_dt, m_time, m_restart_time,
+        //                                 SmallDataIO::APPEND, first_step);
+        // max_phi_file.remove_duplicate_time_data();
+        // if (first_step)
+        // {
+        //     max_phi_file.write_header_line({"max_phi"});
+        // }
+        // max_phi_file.write_time_data_line({max_phi});
+      }
 
 
-            // Do the extraction on the min extraction level
-            if (m_level == m_p.extraction_params.min_extraction_level())
-            {
-                if (m_verbosity)
-                {
-                    pout() << "EMSBH2DLevel::specificPostTimeStep:"
-                              " Extracting electromagnetic waves."
-                           << endl;
-                }
+      //////////////////////////////////////////////
+      // Do Mass Charge Integration
+      //////////////////////////////////////////////
+      if (m_p.activate_mq_extraction == 1 &&
+          at_level_timestep_multiple(
+              m_p.mq_extraction_params.min_extraction_level()))
+      {
+          CH_TIME("EMDBHLevel::doAnalysis::MassChargeExtraction");
 
-                // Refresh the interpolator and do the interpolation
-                m_bh_amr.m_interpolator->refresh();
-                PheylExtraction em_extraction(m_p.pheyl2_extraction_params,
-                                             m_dt, m_time,
-                                             first_step, m_restart_time);
-                em_extraction.execute_query(m_bh_amr.m_interpolator);
-            }
-        }
-    }
+          fillAllGhosts();
+
+          // Do the extraction on the min extraction level
+          if (m_level == m_p.mq_extraction_params.min_extraction_level())
+          {
+              if (m_verbosity)
+              {
+                  pout() << "BinaryBSLevel::specificPostTimeStep:"
+                            " Extracting MassCharge integrals."
+                         << endl;
+              }
+
+              // Refresh the interpolator and do the interpolation
+              m_bh_amr.m_interpolator->refresh();
+              CrudeMassChargeExtraction mq_extraction
+                                                (m_p.mq_extraction_params,
+                                        m_dt, m_time, first_step, m_restart_time);
+              mq_extraction.execute_query(m_bh_amr.m_interpolator);
+          }
+      }
+
+
+      ////////////////////////////////////////////////////
+      // Do Real Scalar Spherical Harmonic Decomposition
+      ////////////////////////////////////////////////////
+      if (m_p.activate_rs_extraction == 1 &&
+          at_level_timestep_multiple(
+              m_p.rs_extraction_params.min_extraction_level()))
+      {
+          CH_TIME("EMDBHLevel::doAnalysis::RealScalarExtraction");
+
+          fillAllGhosts();
+
+          // Do the extraction on the min extraction level
+          if (m_level == m_p.rs_extraction_params.min_extraction_level())
+          {
+              if (m_verbosity)
+              {
+                  pout() << "BinaryBSLevel::specificPostTimeStep:"
+                            " Extracting RealScalar integrals."
+                         << endl;
+              }
+
+              // Refresh the interpolator and do the interpolation
+              m_bh_amr.m_interpolator->refresh();
+              RealScalarExtraction rs_extraction
+                                                (m_p.rs_extraction_params,
+                                        m_dt, m_time, first_step, m_restart_time);
+              rs_extraction.execute_query(m_bh_amr.m_interpolator);
+          }
+      }
+
+      //////////////////////////////////////////////
+      // Do Electromagnetic Radiation Integration
+      //////////////////////////////////////////////
+      if (m_p.activate_em_extraction == 1 &&
+          at_level_timestep_multiple(
+              m_p.pheyl2_extraction_params.min_extraction_level()))
+      {
+          CH_TIME("EMSBH2DLevel::doAnalysis::EMRadExtraction");
+
+          fillAllGhosts();
+          // CouplingFunction coupling_function(m_p.coupling_function_params);
+          // EinsteinMaxwellScalarFieldWithCoupling emd_field(coupling_function);
+
+          // fill grid with pheyl2 im and real components
+          auto pheyl2_compute_pack = make_compute_pack(
+              Pheyl2(m_p.pheyl2_extraction_params.extraction_center,
+                                          m_p.coupling_function_params, m_dx));
+          BoxLoops::loop(pheyl2_compute_pack, m_state_new, m_state_diagnostics,
+                         EXCLUDE_GHOST_CELLS);
+
+
+          // Do the extraction on the min extraction level
+          if (m_level == m_p.pheyl2_extraction_params.min_extraction_level())
+          {
+              if (m_verbosity)
+              {
+                  pout() << "EMSBH2DLevel::specificPostTimeStep:"
+                            " Extracting electromagnetic waves."
+                         << endl;
+              }
+
+              // Refresh the interpolator and do the interpolation
+              m_bh_amr.m_interpolator->refresh();
+              PheylExtraction em_extraction(m_p.pheyl2_extraction_params,
+                                           m_dt, m_time,
+                                           first_step, m_restart_time);
+              em_extraction.execute_query(m_bh_amr.m_interpolator);
+          }
+      }
 }

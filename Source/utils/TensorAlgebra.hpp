@@ -290,19 +290,19 @@ ALWAYS_INLINE Tensor<2, data_t> lower_all(const Tensor<2, data_t> &tensor_UU,
 /// Computes the (i,j) component of the Kronecker delta
 constexpr int delta(int i, int j) { return (i == j); }
 
-// /// Computes the levi-civita symbol (3D, NB, symbol, not the Tensor)
-// inline Tensor<3, double> epsilon()
-// {
-//     Tensor<3, double> epsilon = {0.};
-//     epsilon[0][1][2] = 1.0;
-//     epsilon[1][2][0] = 1.0;
-//     epsilon[2][0][1] = 1.0;
-//     epsilon[0][2][1] = -1.0;
-//     epsilon[2][1][0] = -1.0;
-//     epsilon[1][0][2] = -1.0;
-//
-//     return epsilon;
-// }
+/// Computes the levi-civita symbol (3D, NB, symbol, not the Tensor)
+inline Tensor<3, double> epsilon()
+{
+    Tensor<3, double> epsilon = {0.};
+    epsilon[0][1][2] = 1.0;
+    epsilon[1][2][0] = 1.0;
+    epsilon[2][0][1] = 1.0;
+    epsilon[0][2][1] = -1.0;
+    epsilon[2][1][0] = -1.0;
+    epsilon[1][0][2] = -1.0;
+
+    return epsilon;
+}
 
 /// Computes the levi-civita symbol (3D, NB, symbol, not the Tensor)
 inline Tensor<3, double, 3> epsilon_3d_robin()

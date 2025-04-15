@@ -15,13 +15,15 @@ enum
 {
     // Note that it is important that the first enum value is set to 1 more than
     // the last CCZ4 var enum
-    NUM_VARS = NUM_CCZ4_VARS,
+    NUM_VARS = NUM_CCZ4_CARTOON_VARS,
 };
 
 namespace UserVariables
 {
+static const std::array<std::string, 0> user_variable_names = {};
+
 static const std::array<std::string, NUM_VARS> variable_names =
-    ccz4_variable_names;
+    ArrayTools::concatenate(ccz4_cartoon_variable_names, user_variable_names);
 } // namespace UserVariables
 
 #include "UserVariables.inc.hpp"

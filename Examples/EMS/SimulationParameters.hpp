@@ -120,7 +120,7 @@ public:
         pp.load("activate_em_extraction", activate_pheyl_extraction, 0);
 
         // real scalar extraction stuff
-        pp.load("activate_rs_extraction", activate_realscalar_extraction, 0);
+        pp.load("activate_rs_extraction", activate_rs_extraction, 0);
 
         // mass charge scalar extraction stuff
         pp.load("activate_mq_extraction", activate_mq_extraction, 0);
@@ -148,7 +148,7 @@ public:
     // extraction stuff
     int activate_weyl_extraction;
     int activate_pheyl_extraction;
-    int activate_realscalar_extraction;
+    int activate_rs_extraction;
     int activate_mq_extraction;
 
     // // Layer regridding

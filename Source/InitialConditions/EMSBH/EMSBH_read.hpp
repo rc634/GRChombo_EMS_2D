@@ -37,6 +37,14 @@ class EMSBH_read
     //! Function to compute the value of all the initial vars on the grid
     template <class data_t> void compute(Cell<data_t> current_cell) const;
 
+    //! three functions live inside normal compute function
+    template <class data_t> void compute1(Cell<data_t> current_cell) const;
+    template <class data_t> void compute2(Cell<data_t> current_cell) const;
+    template <class data_t> void compute3(Cell<data_t> current_cell) const;
+
+    // wokring single bh, not in live use
+    template <class data_t> void compute_single(Cell<data_t> current_cell) const;
+
 
 
   protected:

@@ -144,8 +144,8 @@ EMRScalar_t<data_t> Pheyl2::compute_Pheyl2(const Vars<data_t> &vars,
              + m_coupling_params.f2 * phi * phi;
 
     // the -1. in the power is becuase we already square rooted the function
-    out.Real *= exp(-1. * m_coupling_params.alpha * f);
-    out.Im *= exp(-1. * m_coupling_params.alpha * f);
+    // out.Real *= exp(-1. * m_coupling_params.alpha * f);
+    // out.Im *= exp(-1. * m_coupling_params.alpha * f);
 
     return out;
 }

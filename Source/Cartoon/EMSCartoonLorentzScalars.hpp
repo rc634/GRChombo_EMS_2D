@@ -51,6 +51,8 @@ template <class coupling_t> class EMSCartoonLorentzScalars
         data_t f1 = m_coupling_params.f1;
         data_t f2 = m_coupling_params.f2;
 
+        // pout() << "m_centre : " << m_centre[0] << ", " << m_centre[1] << std::endl;
+
         // root minus g
         data_t root_minus_g = pow(vars.chi, -1.5)*vars.lapse;
 
@@ -321,6 +323,9 @@ template <class coupling_t> class EMSCartoonLorentzScalars
 
         data_t Q_scalar = four_pi * coupling_of_phi * r * r * pow(vars.chi,-1.5) * EUr;
         Q_scalar = Q_scalar / sqrt(2. * M_PI); // from definition of E in Lagrangean
+
+        // useful test line to see where centre is 
+        // Q_scalar = x*x + y*y;
 
         // ADM_scalar = -r^2 d_psi/d_r from robins thesis
         ADM_scalar = 0.5*r*r*pow(vars.chi,-1.5)*drdchi;

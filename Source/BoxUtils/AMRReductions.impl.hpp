@@ -83,6 +83,7 @@ Real AMRReductions<var_t>::min(const int a_var) const
 template <VariableType var_t>
 Real AMRReductions<var_t>::max(const Interval &a_vars) const
 {
+    pout() << a_vars.begin() << " : " << a_vars.end() << " : " << m_num_vars << std::endl;
     CH_assert(a_vars.begin() >= 0 && a_vars.end() < m_num_vars);
     CH_TIME("AMRReductions::max");
     return computeMax(m_level_data_ptrs, m_ref_ratios, a_vars, m_base_level);

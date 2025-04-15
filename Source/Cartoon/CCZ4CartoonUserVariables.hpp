@@ -3,8 +3,8 @@
  * Please refer to LICENSE in GRChombo's root directory.
  */
 
-#ifndef CCZ4VARIABLES_HPP
-#define CCZ4VARIABLES_HPP
+#ifndef CCZ4CARTOONVARIABLES_HPP
+#define CCZ4CARTOONVARIABLES_HPP
 
 #include <algorithm>
 #include <array>
@@ -50,12 +50,12 @@ enum
     c_Ey,                  // y electric field
     c_Ez,                  // z electric field
     c_Xi,                  // maxwell constriant
-    NUM_CCZ4_VARS
+    NUM_CCZ4_CARTOON_VARS
 };
 
 namespace UserVariables
 {
-static const std::array<std::string, NUM_CCZ4_VARS> ccz4_variable_names = {
+static const std::array<std::string, NUM_CCZ4_CARTOON_VARS> ccz4_cartoon_variable_names = {
     "chi",
 
     "h11",    "h12",    "h22",
@@ -83,4 +83,4 @@ static const std::array<std::string, NUM_CCZ4_VARS> ccz4_variable_names = {
     "Bx", "By", "Bz", "Ex", "Ey", "Ez", "Xi"};
 } // namespace UserVariables
 
-#endif /* CCZ4VARIABLES_HPP */
+#endif /* CCZ4CARTOONVARIABLES_HPP */

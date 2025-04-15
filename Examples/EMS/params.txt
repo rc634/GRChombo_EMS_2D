@@ -13,12 +13,12 @@ plot_prefix = plt/EMS_Plot_
 #restart_file = chk/EMS_000220.2d.hdf5
 
 # HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
-checkpoint_interval = 20
+checkpoint_interval = 100
 # set to 0 to turn off plot files (except at t=0 and t=stop_time)
 # set to -1 to never ever print plotfiles
-plot_interval = 20
-num_plot_vars = 27
-plot_vars = chi K lapse h11 h12 h22 hww A11 A12 A22 Aww phi Pi Bx By Bz Ex Ey Ez Lambda Xi Weyl4_Re Pheyl2_Re mod_F maxwell Ham Mscalar
+plot_interval = 25
+num_plot_vars = 28
+plot_vars = chi K lapse h11 h12 h22 hww A11 A12 A22 Aww phi Pi Bx By Bz Ex Ey Ez Lambda Xi Weyl4_Re Pheyl2_Re mod_F maxwell Ham Mscalar Qscalar
 
 # subpaths - specific directories for hdf5, pout, extraction data
 # (these are created at runtime)
@@ -38,25 +38,25 @@ print_progress_only_to_rank_0 = 1
 
 # Set up grid spacings and regrid params
 # NB - the N values need to be multiples of block_factor
-N1 = 1024
-N2 = 1024
-N3 = 1024
+N1 = 256
+N2 = 256
+N3 = 256
 
 # Length of longest box side, dx_coarsest = L/N(max)
 # NB if non cubic, this determines dx for all sides
-L = 512
+L = 256
 
 # Maximum number of times you can regrid above coarsest level
-max_level = 5 # There are (max_level+1) grids, so min is zero
+max_level = 6 # There are (max_level+1) grids, so min is zero
 
 # Frequency of regridding at each level and thresholds on the tagging
 # Need one for each level except the top one, ie max_level items
 # Generally you do not need to regrid frequently on every level
 # Level Regridding:   0 1 2 3 .....
-regrid_interval   =   1 0 0 0 0 0 0 0 0 0 0 0  0
-regrid_threshold_A = 6.
-regrid_threshold_phi = 0.3
-regrid_threshold_chi = 0.14
+regrid_interval   =   1 0 0 0 0 0 0 0 0 0 0 0 0
+regrid_threshold_A = 0.25
+regrid_threshold_phi = 0.05
+regrid_threshold_chi = 0.025
 
 # Max and min box sizes
 max_box_size = 128
@@ -119,9 +119,9 @@ G_Newton = 1.0
 
 gridpoints = 50000 # resolution of initial data
 binary = true # make false for one object
-separation = 32.0 # separation in x
+separation = 64.0 # separation in x
 # centre of the star - only uncomment if you want star off centre
-star_centre = 0 0 # ITS 2D IN THIS CODE!!!!!!
+star_centre = 0.0 0.0 # ITS 2D IN THIS CODE!!!!!!
 # for reissner-nordstrom initial data, mass used in horizon finder initial guess too
 bh_charge = 0.7 # likely not the correct value but probably unused
 bh_mass = 1.0
@@ -129,12 +129,15 @@ bh_mass = 1.0
 # Potential params
 # coupling is e^(-2*alpha*f) to maxwell part
 # f = f0 + f1 phi + f2 phi^2
-alpha = 0 for no coupling between scalar and maxwell
-ems_alpha = 0.0 # should be 1.0 here really for contraint satisfaction
+# alpha = 0 for no coupling between scalar and maxwell
+ems_alpha = 12.566370614359172 # 4 pi for conversino to fabrizio's units
 ems_f0 = 0.0
 ems_f1 = 0.0
-ems_f2 = -7.5398223686155035 # -251.32741228718345 # multiplicative difference of 4 pi from Fabrizio
-ems_data_path = "initial_data/id_alpha0.6_ctmr1.0187_fish_eye_t0.dat" # must be included, or will fail with default in pp.load()
+# lambda_me = lambda_fabrizio*4*pi, so i absorb the 4 pi into alpha
+ems_f2 = -20.0 #
+# must be included, or will fail with default in pp.load()
+# ems_data_path = "initial_data/scalarized_lambda-225_t0.dat"
+ems_data_path = "initial_data/scalarized_lambda-20_t0_rinf1000.dat"
 
 # spherical harmonic perturbation, thin gaussian shell at large radius, boosted inwards
 Ylm_amplitude = 0.0 # 0.001 # amplitude is ~1/r in flat space
@@ -148,7 +151,7 @@ Ylm_r0 = 80.0 # initial radius of perturbation shell
 
 # dt will be dx*dt_multiplier on each grid level
 dt_multiplier = 0.25
-stop_time = 20000.0
+stop_time = 5000.0
 # max_steps = 1
 # stop_time = 100.
 
@@ -184,9 +187,10 @@ sigma = 2.0 # 1.0
 # Extraction parameters
 
 activate_extraction = 1
-num_extraction_radii = 5
-extraction_radii = 40. 80. 160. 240. 320.
-extraction_levels = 0 0 0 0 0
+extraction_center = 0.0 0.0
+num_extraction_radii = 3
+extraction_radii = 150. 180. 210.
+extraction_levels = 0 0 0
 num_points_phi = 72
 num_points_theta = 108
 # l m for spherical harmonics
@@ -250,13 +254,13 @@ AH_extra_vars = chi d1_chi
 
 # RealScalar extraction params (realscalar = rs)
 #default center to grid center, uncomment to change
-rs_extraction_center = 0 0 0
-activate_rs_extraction = 0
-rs_num_extraction_radii = 2
-rs_extraction_radii = 5. 10. # can use extraction_radius for one radius
-rs_extraction_levels = 0 0 # can use extraction_level for one radius
-rs_num_points_phi = 64 64
-rs_num_points_theta = 60 60
+rs_extraction_center = 0.0 0.0
+activate_rs_extraction = 1
+rs_num_extraction_radii = 3
+rs_extraction_radii = 50. 100. 150. # can use extraction_radius for one radius
+rs_extraction_levels = 0 0 0 # can use extraction_level for one radius
+rs_num_points_phi = 64
+rs_num_points_theta = 60
 rs_num_modes = 8
 rs_modes = 0 0
            1 0
@@ -267,14 +271,38 @@ rs_modes = 0 0
            3 0
            4 0
 
+#################################################
+
+# Electromagnetic radiation (em or pheyl2)
+#default center to grid center, uncomment to change
+em_extraction_center = 0.0 0.0
+activate_em_extraction = 1
+em_num_extraction_radii = 3
+em_extraction_radii = 50. 100. 150. # can use extraction_radius for one radius
+em_extraction_levels = 0 0 0 # can use extraction_level for one radius
+em_num_points_phi = 64
+em_num_points_theta = 60
+em_num_modes = 8
+em_modes = 0 0
+          1 0
+          1 1
+          2 0
+          2 1
+          2 2
+          3 0
+          4 0
+
+
+#################################################
+
 # M and Q extraction params (mq)
 #default center to grid center, uncomment to change
-mq_extraction_center = 0 0
+mq_extraction_center = 0.0 0.0
 activate_mq_extraction = 1
-mq_num_extraction_radii = 5
-mq_extraction_radii = 5. 10. 20. 40. 80. # can use extraction_radius for one radius
-mq_extraction_levels = 0 0 0 0 0 # can use extraction_level for one radius
-mq_num_points_phi = 64 64
-mq_num_points_theta = 60 60
+mq_num_extraction_radii = 4
+mq_extraction_radii = 20. 50. 100. 150. # can use extraction_radius for one radius
+mq_extraction_levels = 0 0 0 0 # can use extraction_level for one radius
+mq_num_points_phi = 64
+mq_num_points_theta = 60
 mq_num_modes = 1
 mq_modes = 0 0

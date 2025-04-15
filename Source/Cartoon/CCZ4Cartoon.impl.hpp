@@ -603,11 +603,15 @@ FF += 2. * vars.chi * h_UU_ww * (B[2] * B[2] - E[2] * E[2]);
 //   divB3D += dgammainv[i][i][j] * B[j];
 // }}
 // chris contracted is for h_ij not gamma_ij
+
+// latch=1 for Gamma, 0 for chris contracted
+data_t latch=1.;
 FOR(i)
 {
-    //divE += -vars.Gamma[i]*E[i]*vars.chi;
-    divE += -chris_contracted[i]*E[i]*vars.chi;
-    divB += -chris_contracted[i]*B[i]*vars.chi;
+    divE += -vars.Gamma[i]*E[i]*vars.chi * latch;
+    divE += -chris_contracted[i]*E[i]*vars.chi * (1.-latch);
+    divB += -vars.Gamma[i]*B[i]*vars.chi * latch;
+    divB += -chris_contracted[i]*B[i]*vars.chi * (1.-latch);
 }
 
 
@@ -631,32 +635,45 @@ data_t LieBetaBz = advec.Bz + ooy * vars.Bz * vars.shift[iy];
 
 
 // The actual equations
+
+//em_damp controls amount of damping in amxwell evolution. 1 normal, 0 off.
+data_t em_damp = 1.; // curently unused
+
+// switch for type of E damping used
+// 1 is my way, 0 is alternative way (https://arxiv.org/pdf/1706.09875)
+data_t damptype = 1.;
+
 rhs.phi = advec.phi - vars.lapse * vars.Pi;
 rhs.Pi = advec.Pi + vars.lapse * vars.K * vars.Pi
                   - ooy * vars.lapse * h_UU_ww * vars.chi * d1.phi[iy]
                   -0.5 * vars.lapse * fprime * coupling * FF;
 
-rhs.Ex = LieBetaEx + vars.lapse * (vars.K * vars.Ex - 2. * EKx + d1.Xi[0]
+rhs.Ex = LieBetaEx + vars.lapse * (vars.K * vars.Ex - 2. * EKx
+                                   + damptype * d1.Xi[0]/coupling //mine
+                                   + (1.-damptype) * d1.Xi[0]     //not mine
                                    - 2. * fprime * vars.Pi * vars.Ex);
-rhs.Ey = LieBetaEy + vars.lapse * (vars.K * vars.Ey - 2. * EKy + d1.Xi[1]
+rhs.Ey = LieBetaEy + vars.lapse * (vars.K * vars.Ey - 2. * EKy
+                                   + damptype * d1.Xi[1]/coupling //mine
+                                   + (1.-damptype) * d1.Xi[1]     //not mine
                                    - 2. * fprime * vars.Pi * vars.Ey);
 rhs.Ez = LieBetaEz + vars.lapse * (vars.K * vars.Ez - 2. * EzKzz
                                    - 2. * fprime * vars.Pi * vars.Ez);
-rhs.Bx = LieBetaBx + vars.lapse * (vars.K * vars.Bx - 2. * BKx + d1.Lambda[0]);
-rhs.By = LieBetaBy + vars.lapse * (vars.K * vars.By - 2. * BKy + d1.Lambda[1]);
+rhs.Bx = LieBetaBx + vars.lapse * (vars.K * vars.Bx - 2. * BKx + em_damp * d1.Lambda[0]);
+rhs.By = LieBetaBy + vars.lapse * (vars.K * vars.By - 2. * BKy + em_damp * d1.Lambda[1]);
 rhs.Bz = LieBetaBz + vars.lapse * (vars.K * vars.Bz - 2. * BzKzz);
 
-// FIX THE DIV B EQN WITH BETTER DIVERGENCE CALC! LIKE E's
 rhs.Lambda = advec.Lambda + vars.lapse * ( divB - kappa_B * vars.Lambda);
-rhs.Xi = advec.Xi + vars.lapse * coupling * (divE - 2. * fprime * EdotDphi)
-                                          - vars.lapse * kappa_E * vars.Xi;
+rhs.Xi = advec.Xi + vars.lapse * coupling * (divE
+                                  - damptype * 2. * fprime * EdotDphi) //mine
+                  - vars.lapse * (1.-damptype) * 2. * fprime * EdotDphi //not mine
+                  - vars.lapse * kappa_E * vars.Xi;
 
 // strictly the Gamma here absorbs the Z vector automatically.
 // chris_contracted[i] doesnt, it is -partial_i h^{ij}
 FOR (i)
 {
-    rhs.Pi += vars.chi * vars.lapse * chris_contracted[i] * d1.phi[i];
-    // rhs.Pi += vars.chi * vars.lapse * vars.Gamma[i] * d1.phi[i];
+    rhs.Pi += (1.-latch) * vars.chi * vars.lapse * chris_contracted[i] * d1.phi[i];
+    rhs.Pi += latch * vars.chi * vars.lapse * vars.Gamma[i] * d1.phi[i];
 }
 
 FOR2  (i,j)
