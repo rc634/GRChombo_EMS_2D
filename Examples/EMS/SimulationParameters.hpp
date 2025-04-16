@@ -174,8 +174,9 @@ public:
     double AH_initial_guess;
     int AH_num_horizons;
     int AH_expect_merger;
+#endif
     std::array<double, CH_SPACEDIM> horizon_centre_1;
     std::array<double, CH_SPACEDIM> horizon_centre_2;
-#endif
+
 };
 #endif /* SIMULATIONPARAMETERS_HPP_ */
