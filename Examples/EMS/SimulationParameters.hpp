@@ -87,13 +87,13 @@ public:
         // Apparent Horizon stuff
         #ifdef USE_AHFINDER
         pp.load("AH_initial_guess", AH_initial_guess, emsbh_params.bh_mass*0.5);
-        #endif
         pp.load("AH_num_horizons", AH_num_horizons, 0);
         pp.load("AH_expect_merger", AH_expect_merger, 0);
         pp.load("horizon_centre_1", horizon_centre_1,
                 {0.5 * L, 0.5 * L});
         pp.load("horizon_centre_2", horizon_centre_2,
                 {0.5 * L, 0.5 * L});
+        #endif
 
         // Mass extraction
         pp.load("activate_mass_extraction", activate_mass_extraction, 0);
@@ -174,9 +174,9 @@ public:
     double AH_initial_guess;
     int AH_num_horizons;
     int AH_expect_merger;
-#endif
     std::array<double, CH_SPACEDIM> horizon_centre_1;
     std::array<double, CH_SPACEDIM> horizon_centre_2;
+#endif
 
 };
 #endif /* SIMULATIONPARAMETERS_HPP_ */
