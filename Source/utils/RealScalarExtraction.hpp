@@ -25,7 +25,7 @@ class RealScalarExtraction : public SphericalExtraction
         : SphericalExtraction(a_params, a_dt, a_time, a_first_step,
                               a_restart_time)
     {
-        add_var(c_phi, VariableType::evolution);
+        add_var(c_phi_rad, VariableType::diagnostic);
         add_var(c_Pi, VariableType::evolution);
     }
 

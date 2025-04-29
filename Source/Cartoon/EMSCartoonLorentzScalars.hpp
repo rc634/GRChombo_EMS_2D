@@ -112,6 +112,34 @@ template <class coupling_t> class EMSCartoonLorentzScalars
         FF = 2. * BB - 2. * EE;
 
 
+
+        ////////////////////////////////////////////
+        // scalar radiation
+        ////////////////////////////////////////////
+        data_t scalar_radiation = 0.;
+        Tensor<1, data_t, 3> p_phi, p_phi_U;
+        FOR(i)
+        {
+            // co-variant
+            p_phi[i] = -2. * vars.Pi * d1.phi[i];
+            p_phi_U[i] = 0.;
+        }
+        p_phi_U[2]=0;
+        p_phi[2]=0.;
+
+        FOR2(i,j)
+        {
+            //contra-variant
+            p_phi_U[i] += p_phi[j] * gamma_UU[i][j];
+        }
+        // z component is zero anyway
+        p_phi_U[2] = p_phi[2] * vars.hww * vars.chi;
+
+        // radial radiation component
+        // this line implicitly multiplied by r for the volume element
+        scalar_radiation = (p_phi_U[0] * x + p_phi_U[1] * y) * pow(vars.chi,-1.5);
+
+
         ////////////////////////////////////////////
         // calculate hamiltonian of scalar field
         ////////////////////////////////////////////
@@ -257,17 +285,17 @@ template <class coupling_t> class EMSCartoonLorentzScalars
         magnetic_constraint += ooy*vars.By*vars.chi/vars.hww;
 
 
-        // electric_constraint = coupling_of_phi * ( electric_constraint
-        //                        - 2. * EDphi * f_prime_of_phi );
-        //
-        // H2norm_maxwell_constraints = electric_constraint * electric_constraint
-        //                             + magnetic_constraint * magnetic_constraint;
-
-
         electric_constraint = coupling_of_phi * ( electric_constraint
                                - 2. * EDphi * f_prime_of_phi );
 
-        H2norm_maxwell_constraints = electric_constraint;
+        H2norm_maxwell_constraints = electric_constraint * electric_constraint
+                                    + magnetic_constraint * magnetic_constraint;
+
+
+        // electric_constraint = coupling_of_phi * ( electric_constraint
+        //                        - 2. * EDphi * f_prime_of_phi );
+        //
+        // H2norm_maxwell_constraints = electric_constraint;
 
         ////////////////////////////////////////////
         // Mass and Charge Scalars
@@ -324,7 +352,7 @@ template <class coupling_t> class EMSCartoonLorentzScalars
         data_t Q_scalar = four_pi * coupling_of_phi * r * r * pow(vars.chi,-1.5) * EUr;
         Q_scalar = Q_scalar / sqrt(2. * M_PI); // from definition of E in Lagrangean
 
-        // useful test line to see where centre is 
+        // useful test line to see where centre is
         // Q_scalar = x*x + y*y;
 
         // ADM_scalar = -r^2 d_psi/d_r from robins thesis
@@ -332,7 +360,7 @@ template <class coupling_t> class EMSCartoonLorentzScalars
 
         // store variables
         current_cell.store_vars(FF, c_mod_F);
-        current_cell.store_vars(H2norm_maxwell_constraints, c_maxwell);
+        current_cell.store_vars(scalar_radiation, c_phi_rad);
         // dividing by Y_00 makes the f_00 coeffcients actaully equal a regular
         // integral round teh circle
 

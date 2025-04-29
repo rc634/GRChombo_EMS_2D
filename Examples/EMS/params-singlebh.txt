@@ -77,7 +77,7 @@ isPeriodic = 0 0
 # 0 = static, 1 = sommerfeld, 2 = reflective, 3 interpoaltive
 # (see BoundaryConditions.hpp for details)
 hi_boundary = 1 1
-lo_boundary = 2 2
+lo_boundary = 1 2
 
 # if reflective boundaries selected, must set
 # parity of all vars (in order given by UserVariables.hpp)
@@ -118,10 +118,10 @@ nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
 G_Newton = 1.0
 
 gridpoints = 50000 # resolution of initial data
-binary = true # make false for one object
-separation = 64.0 # separation in x
+binary = false # make false for one object
+separation = 0.0 # separation in x
 # centre of the star - only uncomment if you want star off centre
-star_centre = 0.0 0.0 # ITS 2D IN THIS CODE!!!!!!
+star_centre = 128.0 0.0 # ITS 2D IN THIS CODE!!!!!!
 # for reissner-nordstrom initial data, mass used in horizon finder initial guess too
 bh_charge = 0.7 # likely not the correct value but probably unused
 bh_mass = 1.0
@@ -187,9 +187,9 @@ sigma = 2.0 # 1.0
 # Extraction parameters
 
 activate_extraction = 1
-extraction_center = 0.0 0.0
+extraction_center = 128.0 0.0
 num_extraction_radii = 3
-extraction_radii = 150. 180. 210.
+extraction_radii = 80. 100. 120.
 extraction_levels = 0 0 0
 num_points_phi = 72
 num_points_theta = 108
@@ -254,11 +254,11 @@ AH_extra_vars = chi d1_chi
 
 # RealScalar extraction params (realscalar = rs)
 #default center to grid center, uncomment to change
-rs_extraction_center = 0.0 0.0
+rs_extraction_center = 128.0 0.0
 activate_rs_extraction = 1
-rs_num_extraction_radii = 3
-rs_extraction_radii = 50. 100. 150. # can use extraction_radius for one radius
-rs_extraction_levels = 0 0 0 # can use extraction_level for one radius
+rs_num_extraction_radii = 4
+rs_extraction_radii = 5. 50. 100. 120. # can use extraction_radius for one radius
+rs_extraction_levels = 0 0 0 0 # can use extraction_level for one radius
 rs_num_points_phi = 64
 rs_num_points_theta = 60
 rs_num_modes = 8
@@ -275,10 +275,10 @@ rs_modes = 0 0
 
 # Electromagnetic radiation (em or pheyl2)
 #default center to grid center, uncomment to change
-em_extraction_center = 0.0 0.0
+em_extraction_center = 128.0 0.0
 activate_em_extraction = 1
 em_num_extraction_radii = 3
-em_extraction_radii = 50. 100. 150. # can use extraction_radius for one radius
+em_extraction_radii = 50. 100. 120. # can use extraction_radius for one radius
 em_extraction_levels = 0 0 0 # can use extraction_level for one radius
 em_num_points_phi = 64
 em_num_points_theta = 60
@@ -297,10 +297,10 @@ em_modes = 0 0
 
 # M and Q extraction params (mq)
 #default center to grid center, uncomment to change
-mq_extraction_center = 0.0 0.0
+mq_extraction_center = 128.0 0.0
 activate_mq_extraction = 1
 mq_num_extraction_radii = 4
-mq_extraction_radii = 20. 50. 100. 150. # can use extraction_radius for one radius
+mq_extraction_radii = 20. 50. 100. 120. # can use extraction_radius for one radius
 mq_extraction_levels = 0 0 0 0 # can use extraction_level for one radius
 mq_num_points_phi = 64
 mq_num_points_theta = 60

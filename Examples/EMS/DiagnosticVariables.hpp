@@ -10,7 +10,7 @@
 enum
 {
     c_mod_F,
-    c_maxwell, // combined maxwell e and B constraint
+    c_phi_rad, // radiated scalar field
     c_Mscalar,
     c_Qscalar,
 
@@ -54,7 +54,7 @@ namespace DiagnosticVariables
 static const std::array<std::string, NUM_DIAGNOSTIC_VARS> variable_names = {
 
     "mod_F",
-    "maxwell",
+    "phi_rad",
     "Mscalar",
     "Qscalar",
 
