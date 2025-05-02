@@ -42,13 +42,13 @@ template <class data_t> void EMSBH_read::compute(Cell<data_t> current_cell) cons
 {
     if (m_params_EMSBH.binary)
     {
-      compute1(current_cell);
-      compute2(current_cell);
-      compute3(current_cell);
+      compute1(current_cell); // first bh
+      compute2(current_cell); // second bh
+      compute3(current_cell); // superposition fixes/fudges
     }
     else
     {
-      compute_single(current_cell);
+      compute_single(current_cell); // pure solution for one bh
     }
 }
 
@@ -62,7 +62,7 @@ template <class data_t> void EMSBH_read::compute1(Cell<data_t> current_cell) con
     Coordinates<data_t> coords(current_cell, m_dx, m_params_EMSBH.star_centre);
 
 
-    // binary parameters (can be NO binary too)
+    // binary parameters 
     bool binary = m_params_EMSBH.binary;
     double separation = m_params_EMSBH.separation;
 

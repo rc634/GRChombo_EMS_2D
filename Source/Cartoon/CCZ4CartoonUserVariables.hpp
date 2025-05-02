@@ -42,10 +42,10 @@ enum
 
     c_phi, // scalar field
     c_Pi,                    // scalar field momentum
-    c_Lambda,                 // time component of A
-    c_Bx,                  // xcomponent of A
-    c_By,                  // ycomponent of A
-    c_Bz,                  // zcomponent of A
+    c_Lambda,                 // magentic constraint
+    c_Bx,                  // xcomponent of B
+    c_By,                  // ycomponent of B
+    c_Bz,                  // zcomponent of B
     c_Ex,                  // x electric field
     c_Ey,                  // y electric field
     c_Ez,                  // z electric field
