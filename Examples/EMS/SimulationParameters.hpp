@@ -49,6 +49,8 @@ public:
         pp.load("bh_mass", emsbh_params.bh_mass, 1.0);
         pp.load("G_Newton", emsbh_params.Newtons_constant, 1.0);
 
+        // EMS vs RB
+        pp.load("ems_not_rn", EMS_not_RN, false);
         // Coupling params
         pp.load("ems_alpha", coupling_function_params.alpha, 0.0);
         pp.load("ems_f0", coupling_function_params.f0, 0.0);
@@ -161,6 +163,7 @@ public:
     // EMS BH stuff
     EMSBH_params_t emsbh_params;
     CouplingFunction::params_t coupling_function_params;
+    bool EMS_not_RN;
 
     double m_G_Newton;
     int activate_mass_extraction;

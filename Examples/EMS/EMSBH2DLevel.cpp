@@ -71,6 +71,41 @@ void EMSBH2DLevel::specificAdvance()
             m_state_new, m_state_new, EXCLUDE_GHOST_CELLS, disable_simd());
 }
 
+// original function kept for reference
+// // Initial data for field and metric variables
+// void EMSBH2DLevel::initialData()
+// {
+//     CH_TIME("EMSBH2DLevel::initialData");
+//     if (m_verbosity)
+//         pout() << "EMSBH2DLevel::initialData " << m_level << endl;
+//
+//     // // First initalise a EMSBH object - reads from premade datafile (outside grchombo)
+//     // EMSBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+//     //                      m_p.m_G_Newton, m_dx, m_verbosity);
+//
+//
+//     // Read initial data for RN or EMS
+//
+//         // EMS data
+//         EMSBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+//                             m_p.m_G_Newton, m_dx, m_verbosity);
+//         emdbh.compute_1d_solution();
+//         if (m_verbosity)
+//             pout() << "EMSBH2DLevel::initialData - Interpolate to 3D grid " << m_level << endl;
+//         // First set everything to zero ... we don't want undefined values in
+//         // constraints etc, then  initial conditions for EMSBH
+//         BoxLoops::loop(make_compute_pack(SetValue(0.0), emdbh), m_state_new,
+//                        m_state_new, INCLUDE_GHOST_CELLS, disable_simd());
+//         if (m_verbosity)
+//             pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
+//         BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
+//                        EXCLUDE_GHOST_CELLS, disable_simd());
+//
+//
+//     fillAllGhosts();
+// }
+
+
 // Initial data for field and metric variables
 void EMSBH2DLevel::initialData()
 {
@@ -83,33 +118,46 @@ void EMSBH2DLevel::initialData()
     //                      m_p.m_G_Newton, m_dx, m_verbosity);
 
 
-    // // First initalise a RNBH object - analytic test
-    // RNBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
-    //                     m_p.m_G_Newton, m_dx, m_verbosity);
-    // Read EMS BH, THIS IT NOT A TEST
-    EMSBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
-                        m_p.m_G_Newton, m_dx, m_verbosity);
-    emdbh.compute_1d_solution();
+    // Read initial data for RN or EMS
+    if (m_p.EMS_not_RN) {
+        // EMS data
+        EMSBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+                            m_p.m_G_Newton, m_dx, m_verbosity);
+        emdbh.compute_1d_solution();
 
+        if (m_verbosity)
+            pout() << "EMSBH2DLevel::initialData - Interpolate to 3D grid " << m_level << endl;
+        // First set everything to zero ... we don't want undefined values in
+        // constraints etc, then  initial conditions for EMSBH
+        BoxLoops::loop(make_compute_pack(SetValue(0.0), emdbh), m_state_new,
+                       m_state_new, INCLUDE_GHOST_CELLS, disable_simd());
+        if (m_verbosity)
+            pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
+        BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
+                       EXCLUDE_GHOST_CELLS, disable_simd());
+    }
+    else {
+        // RN data
+        RNBH_read emdbh(m_p.emsbh_params, m_p.coupling_function_params,
+                            m_p.m_G_Newton, m_dx, m_verbosity);
+        emdbh.compute_1d_solution();
 
-    if (m_verbosity)
-        pout() << "EMSBH2DLevel::initialData - Interpolate to 3D grid " << m_level << endl;
-    // First set everything to zero ... we don't want undefined values in
-    // constraints etc, then  initial conditions for EMSBH
-    BoxLoops::loop(make_compute_pack(SetValue(0.0), emdbh), m_state_new,
-                   m_state_new, INCLUDE_GHOST_CELLS, disable_simd());
-
-
-
-    if (m_verbosity)
-        pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
-    BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
-                   EXCLUDE_GHOST_CELLS, disable_simd());
-
+        if (m_verbosity)
+            pout() << "EMSBH2DLevel::initialData - Interpolate to 3D grid " << m_level << endl;
+        // First set everything to zero ... we don't want undefined values in
+        // constraints etc, then  initial conditions for EMSBH
+        BoxLoops::loop(make_compute_pack(SetValue(0.0), emdbh), m_state_new,
+                       m_state_new, INCLUDE_GHOST_CELLS, disable_simd());
+        if (m_verbosity)
+            pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
+        BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
+                       EXCLUDE_GHOST_CELLS, disable_simd());
+    }
 
     fillAllGhosts();
-
 }
+
+
 
 // Things to do before a plot level - need to calculate the Weyl scalars
 void EMSBH2DLevel::prePlotLevel()
