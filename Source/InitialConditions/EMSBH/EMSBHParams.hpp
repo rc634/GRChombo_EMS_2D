@@ -16,13 +16,14 @@ struct EMSBH_params_t
     double bh_charge;
     double bh_mass;
     bool binary;
+    bool boosted;
+    double rapidity;
     double Newtons_constant;
     double Ylm_amplitude;
     double Ylm_thickness;
     double Ylm_r0;
     std::string data_path;
-    std::array<double, CH_SPACEDIM>
-        star_centre; //!< coordinates of the centre of the emdbh
+    std::array<double, CH_SPACEDIM> star_centre; //!< coordinates of the centre
 };
 
 #endif /* EMSBHPARAMS_HPP_ */

@@ -186,4 +186,222 @@ double EMSBHSolution_read::get_deriv_interp(const std::vector<double>& in,
 
 
 
+// 4th order quartic interpolator for field. shouts if asked to fetch a
+// value outside the ode solution
+double EMSBHSolution_read::get_value_interp_o4(const std::vector<double>& in,
+                                                          const double r_) const
+{
+  // index of 3nd (out of 5) gridpoints used for interpolation
+  double frac = (r_-r[0])/dx;
+  int iter = (int)round(frac);
+  double a = frac - iter;
+
+  // crude way of dealing with centre
+  // if (iter <= 2) {iter=2;};
+
+  // boundary condition handling around r=0
+  // int i1=-2, i2=-1;
+  // if (iter == 0)
+  // {
+  //   i2 = 1;
+  //   i1 = 2;
+  // }
+  // else if (iter == 1)
+  // {
+  //   i2 = 0;
+  //   i1 = 1;
+  // }
+
+  double interpolated_value = 0, f1, f2, f3, f4, f5;
+  double f[7] = {0.,0.,0.,0.,0.,0.,0.};
+  // note that theres an offset between fi =/= f[i]
+  for (int i=0; i<7; i++)
+  {
+      f[i] = in[iter+i];
+  }
+
+  // imposes symmetric boundary conditions over r=0
+  // f1 = in[iter + i1];
+  // f2 = in[iter + i2];
+  if (iter == 0)
+  {
+    f1 = 28.*f[0]- 112.*f[1] + 210.*f[2] - 224.*f[3] + 140.*f[4] - 48.*f[5] + 7.*f[6];
+    f2 = 7.*f[0] - 21.*f[1] + 35.*f[2] - 35.*f[3] + 21.*f[4] - 7.*f[5] + f[6];
+  }
+  else if (iter == 1)
+  {
+    f1 = 7.*f[0] - 21.*f[1] + 35.*f[2] - 35.*f[3] + 21.*f[4] - 7.*f[5] + f[6];
+    f2 = in[0];
+  }
+  else 
+  {
+    f1 = in[iter-2];
+    f2 = in[iter-1];
+  }
+  f3 = in[iter];
+  f4 = in[iter + 1];
+  f5 = in[iter + 2];
+
+    if (iter > gridpoints - 3)
+    {
+        std::cout << "Requested Value outside initial data domain!"
+                  << std::endl;
+    }
+
+    // do the quatric spline (for gradient now), from mathematica script written
+    // by Robin
+    interpolated_value =
+        (1. / 24.) *
+        (
+           24. * f3
+         + 2.*a * (f1 - 8.*f2 + 8.*f4 - f5)
+         + a*a * (-f1 + 16.*f2 - 30.*f3 + 16.*f4 - f5)
+         + 2.*a*a*a * (-f1 + 2.*f2 -2.*f4 + f5)
+         + a*a*a*a * (f1 - 4.*f2 + 6.*f3 - 4.*f4 + f5)
+        );
+    return interpolated_value;
+}
+
+
+
+// 4th order quartic interpolator for field. shouts if asked to fetch a
+// value outside the ode solution
+double EMSBHSolution_read::get_deriv_interp_o4(const std::vector<double>& in,
+                                                          const double r_) const
+{
+    // index of 3nd (out of 5) gridpoints used for interpolation
+    double frac = (r_-r[0])/dx;
+    int iter = (int)round(frac);
+    double a = frac - iter;
+
+    // crude way of dealing with centre
+    // if (iter <= 2) {iter=2;};
+
+    // boundary condition handling around r=0
+    // int i1=-2, i2=-1;
+    // if (iter == 0)
+    // {
+    //   i2 = 1;
+    //   i1 = 2;
+    // }
+    // else if (iter == 1)
+    // {
+    //   i2 = 0;
+    //   i1 = 1;
+    // }
+
+    double interpolated_value = 0, f1, f2, f3, f4, f5;
+    double f[7] = {0.,0.,0.,0.,0.,0.,0.};
+    // note that theres an offset between fi =/= f[i]
+    for (int i=0; i<7; i++)
+    {
+        f[i] = in[iter+i];
+    }
+
+    // imposes symmetric boundary conditions over r=0
+    // f1 = in[iter + i1];
+    // f2 = in[iter + i2];
+    if (iter == 0)
+    {
+      f1 = 28.*f[0]- 112.*f[1] + 210.*f[2] - 224.*f[3] + 140.*f[4] - 48.*f[5] + 7.*f[6];
+      f2 = 7.*f[0] - 21.*f[1] + 35.*f[2] - 35.*f[3] + 21.*f[4] - 7.*f[5] + f[6];
+    }
+    else if (iter == 1)
+    {
+      f1 = 7.*f[0] - 21.*f[1] + 35.*f[2] - 35.*f[3] + 21.*f[4] - 7.*f[5] + f[6];
+      f2 = in[0];
+    }
+    else
+    {
+      f1 = in[iter-2];
+      f2 = in[iter-1];
+    }
+    f3 = in[iter];
+    f4 = in[iter + 1];
+    f5 = in[iter + 2];
+
+
+
+    if (iter > gridpoints - 3)
+    {
+        std::cout << "Requested Value outside initial data domain!"
+                  << std::endl;
+    }
+
+    // do the quartic spline (for gradient now), from mathematica script written
+    // by Robin
+    interpolated_value =
+        (1. / (12. * dx)) *
+        (
+           f1 - 8.*f2 + 8.*f4 - f5
+         - a * (f1 - 16.*f2 + 30.*f3 - 16.*f4 + f5)
+         + 4.*a*a * (-f1 + 2.*f2 - 2.*f4 + f5)
+         + 2.*a*a*a * (f1 - 4.*f2 + 6.*f3 -4.*f4 + f5)
+        );
+    return interpolated_value;
+}
+
+
+// 1st order interpolator for field. shouts if asked to fetch a
+// value outside the ode solution
+double EMSBHSolution_read::get_value_interp_o1(const std::vector<double>& in,
+                                                          const double r_) const
+{
+    // index of 3nd (out of 5) gridpoints used for interpolation
+    double frac = (r_-r[0])/dx;
+    int iter = (int)round(frac);
+    double a = frac - iter;
+
+
+    double interpolated_value = 0, f1, f2;
+
+    // imposes symmetric boundary conditions over r=0
+    f1 = in[iter];
+    f2 = in[iter + 1];
+
+    if (iter > gridpoints - 3)
+    {
+        std::cout << "Requested Value outside initial data domain!"
+                  << std::endl;
+    }
+
+    // do the quatric spline (for gradient now), from mathematica script written
+    // by Robin
+    interpolated_value = f1 + (f2-f1)*a;
+    return interpolated_value;
+}
+
+
+// 1st order deriv. shouts if asked to fetch a
+// value outside the ode solution
+double EMSBHSolution_read::get_deriv_interp_o1(const std::vector<double>& in,
+                                                          const double r_) const
+{
+    // index of 3nd (out of 5) gridpoints used for interpolation
+    double frac = (r_-r[0])/dx;
+    int iter = (int)round(frac);
+    double a = frac - iter;
+
+    double interpolated_value = 0, f1, f2, f3;
+
+    // imposes symmetric boundary conditions over r=0
+    f1 = in[iter];
+    f2 = in[iter + 1];
+    f3 = in[iter + 2];
+
+
+    if (iter > gridpoints - 3)
+    {
+        std::cout << "Requested Value outside initial data domain!"
+                  << std::endl;
+    }
+
+    // do the quartic spline (for gradient now), from mathematica script written
+    // by Robin
+    interpolated_value = a*(f3-f2)/dx + (1-a)*(f2-f1)/dx;
+    return interpolated_value;
+}
+
+
+
 #endif /* EMSBHSOLUTION_READ_IMPL_HPP_ */

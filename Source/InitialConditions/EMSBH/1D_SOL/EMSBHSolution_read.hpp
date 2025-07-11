@@ -53,7 +53,11 @@ public:
     EMSBHSolution_read();
 
     double get_value_interp(const std::vector<double>& in, const double r_) const;
+    double get_value_interp_o4(const std::vector<double>& in, const double r_) const;
     double get_deriv_interp(const std::vector<double>& in, const double r_) const;
+    double get_deriv_interp_o4(const std::vector<double>& in, const double r_) const;
+    double get_value_interp_o1(const std::vector<double>& in, const double r_) const;
+    double get_deriv_interp_o1(const std::vector<double>& in, const double r_) const;
 
     void main(std::string a_data_path);
     void read_from_file();

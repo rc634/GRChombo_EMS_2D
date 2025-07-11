@@ -44,6 +44,8 @@ public:
         pp.load("star_centre", emsbh_params.star_centre,
                 {0.5 * L, 0.5 * L});
         pp.load("binary", emsbh_params.binary, false);
+        pp.load("boosted", emsbh_params.boosted, false);
+        pp.load("boost_rapidity", emsbh_params.rapidity, 0.0);
         pp.load("separation", emsbh_params.separation, 0.0);
         pp.load("bh_charge", emsbh_params.bh_charge, 0.0);
         pp.load("bh_mass", emsbh_params.bh_mass, 1.0);

@@ -42,8 +42,12 @@ class EMSBH_read
     template <class data_t> void compute2(Cell<data_t> current_cell) const;
     template <class data_t> void compute3(Cell<data_t> current_cell) const;
 
-    // wokring single bh, not in live use
+    // wokring single bh, for history or reference
     template <class data_t> void compute_single(Cell<data_t> current_cell) const;
+
+    //! boost stuff
+    template <class data_t> void compute_boost(Cell<data_t> current_cell, double a_sign) const;
+
 
 
 

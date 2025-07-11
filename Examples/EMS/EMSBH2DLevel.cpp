@@ -28,6 +28,8 @@
 // EMS includes
 #include "EMSBH_read.hpp"
 #include "EMSCouplingFunction.hpp"
+#include "FixSuperposition_K.hpp"
+#include "FixSuperposition_metric.hpp"
 // RNBH test include initial data
 #include "RNBH_read.hpp"
 
@@ -131,6 +133,17 @@ void EMSBH2DLevel::initialData()
         // constraints etc, then  initial conditions for EMSBH
         BoxLoops::loop(make_compute_pack(SetValue(0.0), emdbh), m_state_new,
                        m_state_new, INCLUDE_GHOST_CELLS, disable_simd());
+
+        if (m_p.emsbh_params.boosted)
+        {
+            // BoxLoops::loop(FixSuperposition_K(m_dx, m_p.emsbh_params.star_centre, m_p.emsbh_params.rapidity, m_p.emsbh_params.binary),
+            //              m_state_new, m_state_new,
+            //              INCLUDE_GHOST_CELLS, disable_simd());
+            BoxLoops::loop(FixSuperposition_metric(m_dx, m_p.emsbh_params.star_centre, m_p.emsbh_params.rapidity, m_p.emsbh_params.binary),
+                         m_state_new, m_state_new,
+                         INCLUDE_GHOST_CELLS, disable_simd());
+        }
+
         if (m_verbosity)
             pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
         BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
