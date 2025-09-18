@@ -1,0 +1,311 @@
+# See the wiki page for an explanation of the params!
+# https://github.com/GRChombo/GRChombo/wiki/Guide-to-parameters
+
+#################################################
+# Filesystem parameters
+
+verbosity = 0
+
+# location / naming of output files
+# output_path = "" # Main path for all files. Must exist!
+chk_prefix = chk/EMS_
+plot_prefix = plt/EMS_Plot_
+#restart_file = chk/EMS_000220.2d.hdf5
+
+# HDF5files are written every dt = L/N*dt_multiplier*checkpoint_interval
+checkpoint_interval = 100
+# set to 0 to turn off plot files (except at t=0 and t=stop_time)
+# set to -1 to never ever print plotfiles
+plot_interval = 1
+num_plot_vars = 28
+plot_vars = chi K lapse h11 h12 h22 hww A11 A12 A22 Aww phi Pi Bx By Bz Ex Ey Ez Lambda Xi Weyl4_Re Pheyl2_Re mod_F phi_rad Ham Mscalar Qscalar
+
+# subpaths - specific directories for hdf5, pout, extraction data
+# (these are created at runtime)
+# hdf5_subpath = "hdf5"
+# pout_subpath = "pout"
+# data_subpath = "data"
+
+# change the name of output files
+# pout_prefix = "pout"
+print_progress_only_to_rank_0 = 1
+
+# ignore_checkpoint_name_mismatch = 0
+# write_plot_ghosts = 0
+
+#################################################
+# Grid parameters
+
+# Set up grid spacings and regrid params
+# NB - the N values need to be multiples of block_factor
+N1 = 256
+N2 = 256
+N3 = 256
+
+# Length of longest box side, dx_coarsest = L/N(max)
+# NB if non cubic, this determines dx for all sides
+L = 512
+
+# Maximum number of times you can regrid above coarsest level
+max_level = 6 # There are (max_level+1) grids, so min is zero
+
+# Frequency of regridding at each level and thresholds on the tagging
+# Need one for each level except the top one, ie max_level items
+# Generally you do not need to regrid frequently on every level
+# Level Regridding:   0 1 2 3 .....
+regrid_interval   =   1 0 0 0 0 0 0 0 0 0 0 0 0
+regrid_threshold_A = 0.01 # currently unused
+regrid_threshold_phi = 0.6 #0.35
+regrid_threshold_chi = 0.1 #0.2
+
+# Max and min box sizes
+max_box_size = 128
+min_box_size = 16
+
+# tag_buffer_size = 3
+grid_buffer_size = 32
+fill_ratio = 0.7
+# num_ghosts = 3
+center = 256.0 0.0 # defaults to center of the grid
+
+#################################################
+# Boundary Conditions parameters
+
+# Periodic directions - 0 = false, 1 = true
+isPeriodic = 0 0
+# if not periodic, then specify the boundary type
+# 0 = static, 1 = sommerfeld, 2 = reflective, 3 interpoaltive
+# (see BoundaryConditions.hpp for details)
+hi_boundary = 1 1
+lo_boundary = 1 2
+
+# if reflective boundaries selected, must set
+# parity of all vars (in order given by UserVariables.hpp)
+# 0 = even
+# 1,2 = odd x,y
+# 3 = odd xy
+# maybe 0 = even, 1,2,3 = odd x y z, 4,5,6 = odd xy, yz, zx, 7 = odd xyz
+vars_parity            = 0 0 4 0 0        #chi, hij and hww
+                         0 0 4 0 0        #K, Aij and Aww
+                         0 1 2            # Theta, Gamma_i
+                         0 1 2 1 2        # lapse shift and B_i
+                         0 0              # phi and Pi
+                         6 3 7 5          # B constraint and 3 B's
+                         1 2 5 0          # 3 E's and E constraint
+
+
+vars_parity_diagnostic = 0 0 0 0 0 1 2 0  # mod F to Mom total
+                         0 3 # weyl4 # THIS MIGHT BE 0,4 ? SEE PRE_EXISTING EXAMPLES
+                         0 3 # pheyl2
+                         0 0 # rho and rho ADM
+                         0 0 # Sx Sy
+
+# if sommerfeld boundaries selected, must select
+# non zero asymptotic values
+num_nonzero_asymptotic_vars = 5
+nonzero_asymptotic_vars = chi h11 h22 hww lapse
+nonzero_asymptotic_values = 1.0 1.0 1.0 1.0 1.0
+
+# if you are using extrapolating BC:
+# extrapolation_order = 1
+# num_extrapolating_vars = -1
+# extrapolating_vars =
+
+
+#################################################
+# Initial data params (EMSBH)
+
+G_Newton = 1.0
+
+gridpoints = 50000 # resolution of initial data
+binary = false # make false for one object
+boosted = true #
+boost_rapidity = 0.4 #
+ems_not_rn = true # make true for ems initial data, false for rn
+separation = 128.0 # separation in x
+# centre of the star - only uncomment if you want star off centre
+star_centre = 256.0 0.0 # ITS 2D IN THIS CODE!!!!!!
+# for reissner-nordstrom initial data, mass used in horizon finder initial guess too
+bh_charge = 0.7 # likely not the correct value but probably unused
+bh_mass = 1.0
+
+# Potential params
+# coupling is e^(-2*alpha*f) to maxwell part
+# f = f0 + f1 phi + f2 phi^2
+# alpha = 0 for no coupling between scalar and maxwell
+ems_alpha = 0.0 # 12.566370614359172 # 4 pi for conversino to fabrizio's units
+ems_f0 = 0.0
+ems_f1 = 0.0
+# lambda_me = lambda_fabrizio*4*pi, so i absorb the 4 pi into alpha
+ems_f2 = -20.0 #
+# must be included, or will fail with default in pp.load()
+# ems_data_path = "initial_data/scalarized_lambda-225_t0.dat"
+ems_data_path = "initial_data/schwarzschild_t0_rinf1340_high_res.dat"
+
+# spherical harmonic perturbation, thin gaussian shell at large radius, boosted inwards
+Ylm_amplitude = 0.0 # 0.001 # amplitude is ~1/r in flat space
+Ylm_thickness = 5.0 # gaussian standard deviation of shell thickness
+Ylm_r0 = 80.0 # initial radius of perturbation shell
+
+
+
+#################################################
+# Evolution parameters
+
+# dt will be dx*dt_multiplier on each grid level
+dt_multiplier = 0.25
+stop_time = 500.0
+# max_steps = 1
+# stop_time = 100.
+
+# Spatial derivative order (only affects CCZ4 RHS)
+max_spatial_derivative_order = 4 # can be 4 or 6
+
+nan_check = 1
+
+# Lapse evolution
+lapse_advec_coeff = 1.0 # 1 makes the lapse gauge 1+log slicing
+lapse_coeff = 2.0
+lapse_power = 1.0
+
+# Shift evolution
+shift_advec_coeff = 0.0 # Usually no advection for beta
+shift_Gamma_coeff = 0.75
+eta = 1.0 # eta of gamma driver, should be of order ~1/M_ADM of spacetime
+
+# CCZ4 parameters
+formulation = 0 # 1 for BSSN, 0 for CCZ4
+kappa1 = 0.1
+kappa2 = 0.
+kappa3 = 1.
+covariantZ4 = 1 # 0: keep kappa1; 1 [default]: replace kappa1 -> kappa1/lapse
+
+# coefficient for KO numerical dissipation
+sigma = 2.0 # 1.0
+
+# min_chi = 1.e-4
+# min_lapse = 1.e-4
+
+#################################################
+# Extraction parameters
+
+activate_extraction = 1
+extraction_center = 256.0 0.0
+num_extraction_radii = 3
+extraction_radii = 80. 100. 120.
+extraction_levels = 0 0 0
+num_points_phi = 72
+num_points_theta = 108
+# l m for spherical harmonics
+num_modes = 7
+modes = 2 0
+        2 1
+        2 2
+        3 0
+        4 0
+        5 0
+        6 0
+
+# integral_file_prefix = "Weyl4_mode_"
+
+# write_extraction = 0
+# extraction_subpath = "data/extraction" # directory for 'write_extraction = 1'
+# extraction_file_prefix = "Weyl4_extraction_"
+
+# NOTE TO SELF - DON"T UNDERSTAND THIS BIT YET
+# Extrapolation
+# extraction_extrapolation_order = 2 # 2 or 3
+# extraction_extrapolation_radii = 0 1
+
+#################################################
+# Apparent Horizon Finder parameters
+
+AH_activate = 0
+AH_num_ranks = 1
+AH_num_points_u = 41
+AH_num_points_v = 40
+AH_solve_interval = 1
+AH_print_interval = 1
+# AH_track_center = 1
+# AH_predict_origin = 1
+# AH_level_to_run = 0
+# AH_allow_re_attempt = 0
+# AH_stop_if_max_fails = 0
+# AH_start_time = 0.
+# AH_give_up_time = -1. # -1 to never
+# AH_max_fails_after_lost = 0 # -1 to never
+# AH_print_geometry_data = 0
+# AH_re_solve_at_restart = 0
+# AH_verbose = 1
+# AH_expansion_radius_power = 1.
+
+AH_SNES_max_iterations = 500
+
+# AH_initial_guess = 0.5
+# AH_use_ellipsoid = 1 # for IsotropicBoostedBH ID
+
+# look_for_chi_contour = 0.2
+
+AH_num_extra_vars = 2
+AH_extra_vars = chi d1_chi
+
+# AH_coords_subpath = "data/coords"
+# AH_stats_prefix = "stats_AH"
+# AH_coords_prefix = "coords_AH"
+
+#################################################
+
+# RealScalar extraction params (realscalar = rs)
+#default center to grid center, uncomment to change
+rs_extraction_center = 256.0 0.0
+activate_rs_extraction = 1
+rs_num_extraction_radii = 4
+rs_extraction_radii = 5. 50. 100. 120. # can use extraction_radius for one radius
+rs_extraction_levels = 0 0 0 0 # can use extraction_level for one radius
+rs_num_points_phi = 64
+rs_num_points_theta = 60
+rs_num_modes = 8
+rs_modes = 0 0
+           1 0
+           1 1
+           2 0
+           2 1
+           2 2
+           3 0
+           4 0
+
+#################################################
+
+# Electromagnetic radiation (em or pheyl2)
+#default center to grid center, uncomment to change
+em_extraction_center = 256.0 0.0
+activate_em_extraction = 1
+em_num_extraction_radii = 3
+em_extraction_radii = 50. 100. 120. # can use extraction_radius for one radius
+em_extraction_levels = 0 0 0 # can use extraction_level for one radius
+em_num_points_phi = 64
+em_num_points_theta = 60
+em_num_modes = 8
+em_modes = 0 0
+          1 0
+          1 1
+          2 0
+          2 1
+          2 2
+          3 0
+          4 0
+
+
+#################################################
+
+# M and Q extraction params (mq)
+#default center to grid center, uncomment to change
+mq_extraction_center = 256.0 0.0
+activate_mq_extraction = 1
+mq_num_extraction_radii = 4
+mq_extraction_radii = 20. 50. 100. 120. # can use extraction_radius for one radius
+mq_extraction_levels = 0 0 0 0 # can use extraction_level for one radius
+mq_num_points_phi = 64
+mq_num_points_theta = 60
+mq_num_modes = 1
+mq_modes = 0 0

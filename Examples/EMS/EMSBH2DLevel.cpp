@@ -20,10 +20,13 @@
 
 // Problem specific includes
 #include "CCZ4Cartoon.hpp"
-#include "MovingPunctureGauge.hpp"
 #include "ConstraintsCartoon.hpp"
 #include "SetValue.hpp"
 #include "TraceARemovalCartoon.hpp"
+
+// gauge
+#include "IntegratedMovingPunctureGauge.hpp"
+// #include "MovingPunctureGauge.hpp"
 
 // EMS includes
 #include "EMSBH_read.hpp"
@@ -146,8 +149,12 @@ void EMSBH2DLevel::initialData()
 
         if (m_verbosity)
             pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
+
+        fillAllGhosts();
         BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
                        EXCLUDE_GHOST_CELLS, disable_simd());
+
+
     }
     else {
         // RN data
@@ -163,11 +170,18 @@ void EMSBH2DLevel::initialData()
                        m_state_new, INCLUDE_GHOST_CELLS, disable_simd());
         if (m_verbosity)
             pout() << "EMSBH2DLevel::initialData - GammaCalc " << m_level << endl;
+
+        fillAllGhosts();
         BoxLoops::loop(GammaCartoonCalculator(m_dx), m_state_new, m_state_new,
                        EXCLUDE_GHOST_CELLS, disable_simd());
     }
 
     fillAllGhosts();
+
+    // Integrated MPG ONLY! to initialise B^i
+    auto my_gauge_conditions = IntegratedMovingPunctureGauge(m_p.ccz4_params);
+    BoxLoops::loop(my_gauge_conditions,
+                      m_state_new, m_state_new, EXCLUDE_GHOST_CELLS);
 }
 
 
@@ -204,16 +218,33 @@ void EMSBH2DLevel::specificEvalRHS(GRLevelData &a_soln,
                                          GRLevelData &a_rhs,
                                          const double a_time)
 {
+    ////////////////////////////////////////
     // Enforce positive chi and alpha and trace free A
     BoxLoops::loop(
         make_compute_pack(TraceARemovalCartoon(), PositiveChiAndAlpha()),
         a_soln, a_soln, INCLUDE_GHOST_CELLS);
 
-    // Calculate CCZ4 right hand side
+    ///////////////////////////////////
+    // Coupling Function
     CouplingFunction coupling_function(m_p.coupling_function_params);
-    CCZ4Cartoon<MovingPunctureGauge,FourthOrderDerivatives, CouplingFunction>
+
+    //////////////////////////////
+    // Integrated MPG
+    CCZ4Cartoon<IntegratedMovingPunctureGauge,
+                FourthOrderDerivatives,
+                CouplingFunction>
     my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
                                            m_p.m_G_Newton, m_p.formulation);
+
+    //////////////////////////////
+    // MPG
+    // CCZ4Cartoon<MovingPunctureGauge,
+    //             FourthOrderDerivatives,
+    //             CouplingFunction>
+    // my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
+    //                                       m_p.m_G_Newton, m_p.formulation);
+
+    ///////////////////////
     // zero diagnostic vars
     SetValue set_analysis_vars_zero(0.0, Interval(c_Xi + 1, NUM_VARS - 1));
     auto compute_pack =

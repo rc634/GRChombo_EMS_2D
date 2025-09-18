@@ -892,7 +892,7 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     double c2 = c_*c_;
     double a2 = alpha*alpha;
     // some time derivs - from gauge conditions of Fabrizio
-    double dalpha_dt = 0.;
+    double dalpha_dt = -2.*a*m_1d_sol.get_value_interp_o4(m_1d_sol.K,r);
     double dbetaR_dt = m_1d_sol.get_value_interp_o4(m_1d_sol.Br,r);
     double d_gamma_rr_dr = dadr/X2 - 2.*a*dXdr/X3;
     double dt_shift[3] = {x/safe_r*dbetaR_dt,
@@ -1109,7 +1109,7 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     ///////////////////////////////////////
 
     // lapse likely not used and later over-written
-    vars.lapse += alpha;
+    vars.lapse += boost_lapse;
     vars.shift[0] += boosted_beta_U[0];
     vars.shift[1] += boosted_beta_U[1];
     // no z shift
@@ -1176,6 +1176,10 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
 
     // loading the upstairs E^r then lower with gamma_rr = a/(X*X)
     double EUr = m_1d_sol.get_value_interp_o4(m_1d_sol.Er,r)*root_kappa;
+
+    // proxy equation
+    // EUr = sqrt(0.00002758) * r * r * exp(-r*r) / 0.3678 ;
+
     double E_r = EUr * gamma_polar[0][0];
 
     // only included non-zero temrs in boost, this is not generic!!
@@ -1192,58 +1196,86 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     // //vars.Bz += alpha * s_ * Ey * gmunu_boosted[2][2] / root_gamma_tilde;
     // vars.Bz += boost_lapse * s_ * Ey * gmunu_boosted[2][2] / root_gamma;
 
-    vars.Ex += a * cosphi * alpha * EUr / X2 / boost_lapse;
-    vars.Ey += a * c_ * sinphi * alpha * EUr / X2 / boost_lapse;
-    vars.Bz += a * sinphi * s_ * alpha * EUr * boosted_gamma_LL[2][2] / X2 / root_gamma_tilde;
-
-    // shubbezeros
-    vars.Ez += 0.;
-    vars.Bx += 0.;
-
-
-    double shubbezero = 0., dummyvar=0.;
-
-    dummyvar = cosphi2*c_*s_*X2/a + c_*sinphi2*s_*X2/b + (-c_*s_ + cosphi*betaR*(c2+s2-cosphi*c_*s_*betaR))/a2;
-
-    shubbezero = pow(dummyvar*boost_lapse*boost_lapse-boosted_beta_U[0],2);
-
-    vars.By += shubbezero;
+    // vars.Ex += a * cosphi * alpha * EUr / X2 / boost_lapse;
+    // vars.Ey += a * c_ * sinphi * alpha * EUr / X2 / boost_lapse;
+    // vars.Bz += a * sinphi * s_ * alpha * EUr * boosted_gamma_LL[2][2] / X2 / root_gamma_tilde;
+    //
+    // // shubbezeros
+    // vars.Ez += 0.;
+    // vars.Bx += 0.;
+    // vars.By += 0.;
 
     // list of ok'ed components
     // gmunu boost : passed
     // gmunu * gmunuinv = 4 : passed
-    // gmunu inverse : seems fine 
+    // gmunu inverse : seems fine
     // lapse : passed
     // shift : passed
 
-    // // numerical F boost
-    // double faraday[4][4] = {
-    //             {0., 0., 0., 0.},
-    //             {0., 0., 0., 0.},
-    //             {0., 0., 0., 0.},
-    //             {0., 0., 0., 0.}
-    // };
-    // faraday[3][0] = -alpha*Ex;
-    // faraday[0][3] = alpha*Ex;
-    // faraday[3][1] = -alpha*Ey;
-    // faraday[1][3] = alpha*Ey;
-    //
-    // double faraday_boosted[4][4] = {
-    //             {0., 0., 0., 0.},
-    //             {0., 0., 0., 0.},
-    //             {0., 0., 0., 0.},
-    //             {0., 0., 0., 0.}
-    // };
-    //
-    // for (int m=0; m<4; m++){
-    // for (int n=0; n<4; n++){
-    // for (int r=0; r<4; r++){
-    // for (int s=0; s<4; s++){
-    //   faraday_boosted[m][n] +=        Lambda[m][r]
-    //                                 * Lambda[n][s]
-    //                                 * faraday[r][s];
-    // }}}}
-    //vars.Bz += boosted_gamma_LL[2][2] * faraday_boosted[0][1] / root_gamma_tilde;
+    // numerical F boost
+    double faraday[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+    faraday[3][0] = -alpha*Ex;
+    faraday[0][3] = alpha*Ex;
+    faraday[3][1] = -alpha*Ey;
+    faraday[1][3] = alpha*Ey;
+
+    double faraday_boosted[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+
+    for (int m=0; m<4; m++){
+    for (int n=0; n<4; n++){
+    for (int r=0; r<4; r++){
+    for (int s=0; s<4; s++){
+      faraday_boosted[m][n] +=        Lambda[m][r]
+                                    * Lambda[n][s]
+                                    * faraday[r][s];
+    }}}}
+
+    // purely spatial components of Fmunu
+    double Bmunu_boosted[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+
+    // unit time normals
+    double nU[4] = {0., 0., 0., 0.};
+    double nL[4] = {0., 0., 0., 0.};
+    nL[3] = -boost_lapse;
+    nU[0] = -boosted_beta_U[0]/boost_lapse;
+    nU[1] = -boosted_beta_U[1]/boost_lapse;
+    nU[2] = -boosted_beta_U[2]/boost_lapse;
+    nU[3] = 1./boost_lapse;
+
+    // spatial projection (with respect to boost/tilde)
+    for (int m=0; m<4; m++){
+    for (int n=0; n<4; n++){
+    for (int r=0; r<4; r++){
+    for (int s=0; s<4; s++){
+      Bmunu_boosted[m][n] += (I4[m][r] + nU[r] * nL[m])
+                           * (I4[n][s] + nU[s] * nL[n])
+                           * faraday_boosted[r][s];
+    }}}}
+
+    // re-make leccy fields in boosted frame
+    for (int m=0; m<4; m++){
+      vars.Ex += - nU[m] * faraday_boosted[m][0];
+      vars.Ey += - nU[m] * faraday_boosted[m][1];
+      vars.Ez += - nU[m] * faraday_boosted[m][2];
+    }
+
+    //  cheat method allowed bcos i checked thet other y and x components vanish
+    vars.Bz += Bmunu_boosted[0][1] * boosted_gamma_LL[2][2] / root_gamma_tilde;
 
 
 
@@ -1285,6 +1317,18 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
 
     ////////////////////////////////////////
     // BOOSTED EXTRINSIC CURVATURE SETUP
+    ////////////////////////////////////////
+
+    // heres the overview
+
+    // step 1 : create rest frame 4d cartesian derivs d_a g_bc
+    // step 2 : boost d_a g_bc to lab frame
+    // step 3 :
+    // step 4 :
+
+
+    ////////////////////////////////////////
+    // Aij step 1 :  create d_a g_bc 4d carts
     ////////////////////////////////////////
 
     // time derivative of gamma_ij and stuff
@@ -1427,19 +1471,24 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
 
     // finally create cartesian 4-metric derivs here
     // loops to 4 here for time!! i,j = 0,1,2,3 <-> x,y,z,t
-    for (int i=0; i<4; i++){
-    for (int j=0; j<4; j++){
-        d_4metric[0][i][j] = dr_dx * dr_4metric[i][j]
-                           + dth_dx * dth_4metric[i][j]
-                           + dph_dx * dph_4metric[i][j];
-        d_4metric[1][i][j] = dr_dy * dr_4metric[i][j]
-                           + dth_dy * dth_4metric[i][j]
-                           + dph_dy * dph_4metric[i][j];
-        d_4metric[2][i][j] = dr_dz * dr_4metric[i][j]
-                           + dth_dz * dth_4metric[i][j]
-                           + dph_dz * dph_4metric[i][j];
-        d_4metric[3][i][j] = dt_4metric[i][j];
+    for (int m=0; m<4; m++){
+    for (int n=0; n<4; n++){
+        d_4metric[0][m][n] = dr_dx * dr_4metric[m][n]
+                           + dth_dx * dth_4metric[m][n]
+                           + dph_dx * dph_4metric[m][n];
+        d_4metric[1][m][n] = dr_dy * dr_4metric[m][n]
+                           + dth_dy * dth_4metric[m][n]
+                           + dph_dy * dph_4metric[m][n];
+        d_4metric[2][m][n] = dr_dz * dr_4metric[m][n]
+                           + dth_dz * dth_4metric[m][n]
+                           + dph_dz * dph_4metric[m][n];
+        d_4metric[3][m][n] = 0. * dt_4metric[m][n];
     }}
+
+    ////////////////////////////////////////
+    // Aij step 2 :  boost d_a g_bc 4d carts
+    ////////////////////////////////////////
+
     // now boost the results, we have deriv of boosted 4-metric
     // with respect to boosted coords
     for (int m=0; m<4; m++){
@@ -1519,7 +1568,7 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
 
     // /////////////////////////////////////
     // // shift derivs - rest frame
-    double di_betaj[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    // double di_betaj[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
     //
     // // one way of calculating beta deriv
     // // for (int j=0; j<3; j++){
@@ -1531,13 +1580,13 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     // // }
     //
     // // alternative way of calculating the beta deriv
-    for (int i=0; i<3; i++){
-    for (int j=0; j<3; j++){
-      di_betaj[i][j] += betaR * kroneka_delta[i][j] / safe_r;
-      di_betaj[i][j] += cart_coords[i] * cart_coords[j]  *
-                              (dbetaR_dr - betaR/safe_r) *
-                               pow(safe_r,-2);
-    }}
+    // for (int i=0; i<3; i++){
+    // for (int j=0; j<3; j++){
+    //   di_betaj[i][j] += betaR * kroneka_delta[i][j] / safe_r;
+    //   di_betaj[i][j] += cart_coords[i] * cart_coords[j]  *
+    //                           (dbetaR_dr - betaR/safe_r) *
+    //                            pow(safe_r,-2);
+    // }}
 
     //
     //

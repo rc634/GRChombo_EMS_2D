@@ -94,7 +94,6 @@ class FixSuperposition_metric
             one_if_binary = 1.;
         }
         double lapse = vars.lapse - one_if_binary;
-        double K = 0.;
 
         // load space metric
         Tensor<2, data_t, 3> gij = {0.};
@@ -117,6 +116,7 @@ class FixSuperposition_metric
         double chi = pow(det_gamma,-1./3.);
 
         // calculate trace
+        double K = 0.;
         for (int i = 0; i < 3; i++) {
         for (int j = 0; j < 3; j++) {
           K += g_UU[i][j] * Kij[i][j] * ramp_r;
