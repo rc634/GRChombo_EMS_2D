@@ -38,7 +38,7 @@ const chris_t<data_t> &chris, const int &nS, const CouplingFunction &a_coupling)
 emtensorCartoon_t<data_t> out;
 
 // set coupling functions
-data_t coupling =0., f_coupling=0., fprime=0.;
+data_t coupling = 0., f_coupling = 0., fprime = 0.;
 a_coupling.compute_coupling(f_coupling, fprime, coupling, vars);
 
 // 3D B and E fields
@@ -435,27 +435,80 @@ FOR(i)
     }
 
     rhs.Gamma[i] += matter_term_Gamma;
-    rhs.B[i] += matter_term_Gamma;
+
+    // TERM needed for MPG, but not IMPG
+    // rhs.B[i] += matter_term_Gamma;
 }
 
 ////////////////////////////////////////
-// Matter evolution equations
+// Matter evolution  - Robin's code below (also stress tensor is mine)
 ///////////////////////////////////////
 
 // some conveniences and damping parameters
-data_t ooy = sqrt(1./(pow(1./one_over_cartoon_coord,2)+10e-20)); // 1/y
+//data_t ooy = sqrt(1./(pow(1./one_over_cartoon_coord,2)+10e-20)); // 1/y
+data_t ooy = one_over_cartoon_coord; // 1/y
 const int iy = dI; // index of y coord
-data_t kappa_B = 1.0, kappa_E = 1.0;
+const int ix = 0;
+const int iz = 2;
 
+///////////////////////
+// // some 3d variables
+///////////////////
+
+// fields and simple derivs
 Tensor<1, data_t, 3> E;
 Tensor<1, data_t, 3> B;
-E[0] = vars.Ex;
-E[1] = vars.Ey;
-E[2] = vars.Ez;
-B[0] = vars.Bx;
-B[1] = vars.By;
-B[2] = vars.Bz;
+Tensor<1, data_t, 3> Dphi = {0.};
+Tensor<1, data_t, 3> Dchi = {0.};
+Tensor<1, data_t, 3> Dlapse = {0.};
+// E_i
+E[ix] = vars.Ex;
+E[iy] = vars.Ey;
+E[iz] = vars.Ez;
+// B_i
+B[ix] = vars.Bx;
+B[iy] = vars.By;
+B[iz] = vars.Bz;
 
+FOR(i) {
+    Dphi[i] = d1.phi[i];
+    Dchi[i] = d1.chi[i];
+    Dlapse[i] = d1.lapse[i];
+}
+Dphi[2] = 0.;
+Dchi[2] = 0.;
+Dlapse[2] = 0.;
+
+// h^ij 3d
+Tensor<2, data_t, 3> h_UU_3d = {0.};
+FOR2(i,j)
+{
+    h_UU_3d[i][j] = h_UU[i][j];
+}
+h_UU_3d[2][2] = h_UU_ww;
+
+
+
+////
+
+// physical metric gamma_ij
+Tensor<2, data_t, 3> gammaLL_3d = {0.};
+FOR2(i,j)
+{
+    gammaLL_3d[i][j] = vars.h[i][j]/vars.chi;
+}
+gammaLL_3d[iz][iz] = vars.hww/vars.chi;
+
+// extrinsic curvture - K_ij
+Tensor<2, data_t, 3> Kij = {0.}; // K_{ij}
+data_t Kzz = (vars.Aww + vars.K*vars.hww/3.)/vars.chi;
+FOR2(i,j)
+{
+    Kij[i][j] = (vars.A[i][j] + vars.K*vars.h[i][j]/3.)/vars.chi;
+}
+Kij[iz][iz] = Kzz;
+
+// epsilon tensor eps_ijk
 Tensor<3, data_t, 3> epsLLL = {0.};
 data_t eps012 = pow(vars.chi, -1.5);
 epsLLL[0][1][2] = eps012;
@@ -465,18 +518,12 @@ epsLLL[1][0][2] = -eps012;
 epsLLL[2][0][1] = eps012;
 epsLLL[2][1][0] = -eps012;
 
-// some derivatives of tensors
-// Tensor<3, data_t, 3> dgammainv = {0.}; // d[i] gammainv ^[j,k]
-// Tensor<3, data_t, 3> dgamma3d = {0.}; // d[i] gamma [j,k]
-Tensor<2, data_t, 3> dE; // d[i] E[j] = dE[i][j]
-Tensor<2, data_t, 3> dB; // d[i] B[j] = dB[i][j]
-Tensor<2, data_t> Kij; // K_{ij}
-data_t Kzz = (vars.Aww + vars.K*vars.hww/3.)/vars.chi;
-FOR2(i,j)
-{
-    Kij[i][j] = (vars.A[i][j] + vars.K*vars.h[i][j]/3.)/vars.chi;
-}
 
+/////////////////////////
+// some derivatives required for calculations
+Tensor<2, data_t, 3> dE = {0.}; // d[i] E[j] = dE[i][j]
+Tensor<2, data_t, 3> dB = {0.}; // d[i] B[j] = dB[i][j]
+Tensor<2, data_t, 3> dij_phi = {0.}; // d[i] B[j] = dB[i][j]
 FOR(i)
 {
     dE[i][0] = d1.Ex[i];
@@ -494,125 +541,142 @@ dB[2][0] = 0.;
 dB[2][1] = - ooy * vars.Bz;
 dB[2][2] = ooy * vars.By;
 
-
-
-// compute the terms that are the cross-product terms in maxwell
-// i.e. epsilon tensor terms,
-// note E(B) term containts B(E) fields (opposite)
-Tensor<1, data_t, 3> d_lapse_3d;
-Tensor<1, data_t, 3> d_phi_3d;
-FOR(i)
-{
-    d_lapse_3d[i] = d1.lapse[i];
-    d_phi_3d[i] = d1.phi[i];
-}
-d_lapse_3d[2] = 0.;
-d_phi_3d[2] = 0.;
-
-Tensor<2, data_t, 3> h_UU_3d = {0.};
 FOR2(i,j)
 {
-    h_UU_3d = h_UU[i][j];
+    dij_phi[i][j] = d2.phi[i][j];
 }
-h_UU_3d[2][2] = h_UU_ww;
+dij_phi[iz][iz] = ooy * Dphi[iy];
 
-/////////// OLD METHOD KEPT JUST INCASE
 
-// FOR3(i,j,k)
-// {
-//     dgamma3d[i][j][k] = d1.h[j][k][i] / vars.chi
-//                        - vars.h[j][k] * d1.chi[i] * pow(vars.chi , -2);
-// }
-// dgamma3d[0][2][2] = d1.hww[0] / vars.chi
-//                        - vars.hww * d1.chi[0] * pow(vars.chi , -2);
-// dgamma3d[1][2][2] = d1.hww[1] / vars.chi
-//                       - vars.hww * d1.chi[1] * pow(vars.chi , -2);
+//////////////////////////
+// derivs of various 3d metrics
 //
-// dgamma3d[2][0][2] = ooy * vars.h[0][1] / vars.chi;
-// dgamma3d[2][2][0] = dgamma3d[2][0][2];
-// dgamma3d[2][1][2] = ooy * (vars.h[1][1] - vars.hww)/vars.chi;
-// dgamma3d[2][2][1] = dgamma3d[2][1][2];
+Tensor<3, data_t, 3> dh_3d = {0.};
+Tensor<3, data_t, 3> dgamma = {0.};
+Tensor<3, data_t, 3> dgammainv = {0.};
 
+//d_i h_jk
+FOR3(i,j,k)
+{
+    dh_3d[i][j][k] = d1.h[j][k][i];
+}
+FOR(i)
+{
+    dh_3d[i][2][2] = d1.hww[i];
+}
+dh_3d[2][0][2] = ooy * vars.h[0][1];
+dh_3d[2][2][0] = ooy * vars.h[0][1];
+dh_3d[2][1][2] = ooy * (vars.h[1][1]-vars.hww);
+dh_3d[2][2][1] = ooy * (vars.h[1][1]-vars.hww);
+
+for (int i=0; i<3; i++){
+for (int j=0; j<3; j++){
+for (int k=0; k<3; k++){
+    dgamma[i][j][k] = (dh_3d[i][j][k] - gammaLL_3d[j][k]*Dchi[i])/vars.chi;
+}}}
+// deriv of inverse metric
+for (int i=0; i<3; i++){
+for (int a=0; a<3; a++){
+for (int b=0; b<3; b++){
+for (int c=0; c<3; c++){
+for (int d=0; d<3; d++){
+    dgammainv[i][a][b] += - vars.chi * vars.chi
+                              * h_UU_3d[a][c] * h_UU_3d[b][d]
+                              * dgamma[i][c][d];
+}}}}}
+
+// maybe beter for well posedness ..
+// d_i (h^ij chi) = - chi Gamma^j + h^ij d_i chi
+// Gamma^j ~ -d_i h^ij + CCZ4 stuff
+// FOR2(i,j)
+// {
+//     dgammainv[i][i][j] = - vars.chi * vars.Gamma[j] + h_UU[i][j] * d1.chi[i];
+// }
+
+
+///////////////////////////////
+// connection symbols - all physical
+// Tensor<3, data_t, 3> my_chris_LLL = {0.};
+// Tensor<3, data_t, 3> my_chris = {0.};
+// Tensor<1, data_t, 3> my_chris_contracted = {0.};
+//
+// // LLL christoffel symbol
 // for (int i=0; i<3; i++){
-// for (int a=0; a<3; a++){
-// for (int b=0; b<3; b++){
-// for (int c=0; c<3; c++){
-// for (int d=0; d<3; d++){
-//     dgammainv[i][a][d] += - vars.chi * vars.chi
-//                               * h_UU_3d[c][d] * h_UU_3d[a][b]
-//                               * dgamma3d[i][b][c];
-// }}}}}
+// for (int j=0; j<3; j++){
+// for (int k=0; k<3; k++){
+//     my_chris_LLL[i][j][k] = 0.5 * ( - dgamma[i][j][k]
+//                                     + dgamma[j][k][i]
+//                                     + dgamma[k][i][j]);
+// }}}
+//
+// // 3d christoffel symbol
+// for (int i=0; i<3; i++){
+// for (int j=0; j<3; j++){
+// for (int k=0; k<3; k++){
+// for (int l=0; l<3; l++){
+//     my_chris[i][j][k] += h_UU_3d[i][l]*vars.chi*my_chris_LLL[l][j][k];
+// }}}}
+//
+// // WARNING, CHECK THIS IS CORRECT FOR USE LATER BY CONVENTIONS
+// // contracted physical 3d christoffel symbol
+// for (int i=0; i<3; i++){
+// for (int j=0; j<3; j++){
+// for (int k=0; k<3; k++){
+//     my_chris_contracted[i] += my_chris[i][j][k]*h_UU_3d[j][k]*vars.chi;
+// }}}
 
 
-Tensor<2, data_t, 3> the_E_term;
-Tensor<2, data_t, 3> the_B_term;
+
+/////////////////////////////
+// some intermediate objects
+
+
+Tensor<2, data_t, 3> the_E_term = {0.};
+Tensor<2, data_t, 3> the_B_term = {0.};
 for (int k = 0; k <3; k++){
 for (int j = 0; j <3; j++){
-    the_E_term[k][j] = B[k] * d_lapse_3d[j] + vars.lapse * dB[j][k]
-                            - 2. * vars.lapse * fprime * B[k] * d_phi_3d[j];
-    the_B_term[k][j] = - E[k] * d_lapse_3d[j] - vars.lapse * dE[j][k];
+    the_E_term[j][k] = B[k] * Dlapse[j] + vars.lapse * dB[j][k]
+                            - 2. * vars.lapse * fprime * B[k] * Dphi[j];
+    the_B_term[j][k] = - E[k] * Dlapse[j] - vars.lapse * dE[j][k];
 }}
 
 // Make some objects we need to keep the equations readable
 data_t FF = 0.;
 data_t EdotDphi = 0.;
-// data_t divB3D = 0.;
-// data_t divE3D = 0.;
+data_t Dphi_dot_Dlapse = 0.;
 data_t divE = 0.;
 data_t divB = 0.;
-data_t EKx = 0., EKy = 0., EzKzz = vars.Ez * vars.chi * h_UU_ww * Kzz;
-data_t BKx = 0., BKy = 0., BzKzz = vars.Bz * vars.chi * h_UU_ww * Kzz;
-FOR2(i,j)
-{
+data_t lap_phi = 0.; // laplacian
+Tensor<1, data_t, 3> KijBj = {0.};
+Tensor<1, data_t, 3> KijEj = {0.};
 
-    EKx += E[i] * Kij[0][j] * vars.chi * h_UU[i][j];
-    EKy += E[i] * Kij[1][j] * vars.chi * h_UU[i][j];
-    BKx += B[i] * Kij[0][j] * vars.chi * h_UU[i][j];
-    BKy += B[i] * Kij[1][j] * vars.chi * h_UU[i][j];
+for (int i = 0; i <3; i++){
+for (int j = 0; j <3; j++){
+for (int k = 0; k <3; k++){
+      KijEj[i] += E[j] * Kij[k][i] * vars.chi * h_UU_3d[j][k];
+      KijBj[i] += B[j] * Kij[k][i] * vars.chi * h_UU_3d[j][k];
+}}}
 
-    EdotDphi += vars.chi * h_UU[i][j] * E[i] * d1.phi[j];
+for (int i = 0; i <3; i++){
+for (int j = 0; j <3; j++){
 
-    // divE3D += -3./2. * h_UU[i][j] * E[i] * d1.chi[j];
-    // divE3D += vars.chi * h_UU[i][j] * dE[i][j]; // the "dE term"
-    //
-    // divB3D += -3./2. * h_UU[i][j] * B[i] * d1.chi[j];
-    // divB3D += vars.chi * h_UU[i][j] * dB[i][j]; // the "dB term"
+    EdotDphi += vars.chi * h_UU_3d[i][j] * E[i] * Dphi[j];
+    Dphi_dot_Dlapse += vars.chi * h_UU_3d[i][j] * Dphi[i] * Dlapse[j];
 
-    divE += vars.chi*h_UU[i][j]*dE[i][j];
-    divE += -0.5 * h_UU[i][j]*E[j]*d1.chi[i];
-    divB += vars.chi*h_UU[i][j]*dB[i][j];
-    divB += -0.5 * h_UU[i][j]*B[j]*d1.chi[i];
+    lap_phi += dij_phi[i][j] * vars.chi * h_UU_3d[i][j];
+    lap_phi += -1.5 * h_UU_3d[i][j] * Dphi[j] * Dchi[i];
+    lap_phi += Dphi[j] * dgammainv[i][i][j];
 
-    FF += 2. * vars.chi * h_UU[i][j] * (B[i] * B[j] - E[i] * E[j]);
-}
+    divE += vars.chi * h_UU_3d[i][j] * dE[i][j];
+    divE += -1.5 * h_UU_3d[i][j] * E[j] * Dchi[i];
+    divE += E[j] * dgammainv[i][i][j];
 
+    divB += vars.chi * h_UU_3d[i][j] * dB[i][j];
+    divB += -1.5 * h_UU_3d[i][j] * B[j] * Dchi[i];
+    divB += B[j] * dgammainv[i][i][j];
 
-
-//cartoon terms
-// divE3D += ooy * h_UU_ww * vars.Ey * vars.chi; // the cartoon "dE term"
-// divB3D += ooy * h_UU_ww * vars.By * vars.chi; // the cartoon "dB term"
-divE += ooy * vars.chi * h_UU_ww * vars.Ey;
-divB += ooy * vars.chi * h_UU_ww * vars.By;
-FF += 2. * vars.chi * h_UU_ww * (B[2] * B[2] - E[2] * E[2]);
-
-// need 3d loop here as d_z gamma^zx =/=0 (even thought gamma^xz=0)
-// same arguemtn for gamma^zy ...
-// for (int i = 0; i <3; i++){
-// for (int j = 0; j <3; j++){
-//   divE3D += dgammainv[i][i][j] * E[j];
-//   divB3D += dgammainv[i][i][j] * B[j];
-// }}
-// chris contracted is for h_ij not gamma_ij
-
-// latch=1 for Gamma, 0 for chris contracted
-data_t latch=1.;
-FOR(i)
-{
-    divE += -vars.Gamma[i]*E[i]*vars.chi * latch;
-    divE += -chris_contracted[i]*E[i]*vars.chi * (1.-latch);
-    divB += -vars.Gamma[i]*B[i]*vars.chi * latch;
-    divB += -chris_contracted[i]*B[i]*vars.chi * (1.-latch);
-}
+    FF += 2. * vars.chi * h_UU_3d[i][j] * (B[i] * B[j] - E[i] * E[j]);
+}}
 
 
 
@@ -622,66 +686,52 @@ FOR(i)
 ////////////////////////////////
 
 // Lie derivatives, uses d_i beta_j = d1.shift[j][i]
+// L_beta w_i = advec w_i + w_j d_i beta^j
+// e
 data_t LieBetaEx = advec.Ex
                     + vars.Ex * d1.shift[0][0] + vars.Ey * d1.shift[1][0];
 data_t LieBetaEy = advec.Ey
                     + vars.Ex * d1.shift[0][1] + vars.Ey * d1.shift[1][1];
 data_t LieBetaEz = advec.Ez + ooy * vars.Ez * vars.shift[1];
+// b
 data_t LieBetaBx = advec.Bx
                     + vars.Bx * d1.shift[0][0] + vars.By * d1.shift[1][0];
 data_t LieBetaBy = advec.By
                     + vars.Bx * d1.shift[0][1] + vars.By * d1.shift[1][1];
 data_t LieBetaBz = advec.Bz + ooy * vars.Bz * vars.shift[iy];
 
+////////////////////////////////
+// Fill RHS of evolution variables
+///////////////////////////////
 
-// The actual equations
-
-//em_damp controls amount of damping in amxwell evolution. 1 normal, 0 off.
-data_t em_damp = 1.; // curently unused
-
-// switch for type of E damping used
-// 1 is my way, 0 is alternative way (https://arxiv.org/pdf/1706.09875)
-data_t damptype = 1.;
-
+/////////////////////////////////
+// scalar field vars
 rhs.phi = advec.phi - vars.lapse * vars.Pi;
-rhs.Pi = advec.Pi + vars.lapse * vars.K * vars.Pi
-                  - ooy * vars.lapse * h_UU_ww * vars.chi * d1.phi[iy]
-                  -0.5 * vars.lapse * fprime * coupling * FF;
+rhs.Pi = advec.Pi + vars.lapse * (  vars.K * vars.Pi  - lap_phi
+                                   - 0.5 * vars.lapse * fprime * coupling * FF)
+                  - Dphi_dot_Dlapse;
 
-rhs.Ex = LieBetaEx + vars.lapse * (vars.K * vars.Ex - 2. * EKx
-                                   + damptype * d1.Xi[0]/coupling //mine
-                                   + (1.-damptype) * d1.Xi[0]     //not mine
-                                   - 2. * fprime * vars.Pi * vars.Ex);
-rhs.Ey = LieBetaEy + vars.lapse * (vars.K * vars.Ey - 2. * EKy
-                                   + damptype * d1.Xi[1]/coupling //mine
-                                   + (1.-damptype) * d1.Xi[1]     //not mine
-                                   - 2. * fprime * vars.Pi * vars.Ey);
-rhs.Ez = LieBetaEz + vars.lapse * (vars.K * vars.Ez - 2. * EzKzz
+
+////////////////////////////
+// electromagnetism
+
+// electric fields - ansatz 1 of Lehner paper for Xi (more detail below)
+rhs.Ex = LieBetaEx + vars.lapse * (vars.K * vars.Ex - 2. * KijEj[ix]
+                                   - 2. * fprime * vars.Pi * vars.Ex
+                                                        - d1.Xi[ix] );
+
+rhs.Ey = LieBetaEy + vars.lapse * (vars.K * vars.Ey - 2. * KijEj[iy]
+                                   - 2. * fprime * vars.Pi * vars.Ey
+                                                        - d1.Xi[iy] );
+
+rhs.Ez = LieBetaEz + vars.lapse * (vars.K * vars.Ez - 2. * KijEj[iz]
                                    - 2. * fprime * vars.Pi * vars.Ez);
-rhs.Bx = LieBetaBx + vars.lapse * (vars.K * vars.Bx - 2. * BKx + em_damp * d1.Lambda[0]);
-rhs.By = LieBetaBy + vars.lapse * (vars.K * vars.By - 2. * BKy + em_damp * d1.Lambda[1]);
-rhs.Bz = LieBetaBz + vars.lapse * (vars.K * vars.Bz - 2. * BzKzz);
 
-rhs.Lambda = advec.Lambda + vars.lapse * ( divB - kappa_B * vars.Lambda);
-rhs.Xi = advec.Xi + vars.lapse * coupling * (divE
-                                  - damptype * 2. * fprime * EdotDphi) //mine
-                  - vars.lapse * (1.-damptype) * 2. * fprime * EdotDphi //not mine
-                  - vars.lapse * kappa_E * vars.Xi;
 
-// strictly the Gamma here absorbs the Z vector automatically.
-// chris_contracted[i] doesnt, it is -partial_i h^{ij}
-FOR (i)
-{
-    rhs.Pi += (1.-latch) * vars.chi * vars.lapse * chris_contracted[i] * d1.phi[i];
-    rhs.Pi += latch * vars.chi * vars.lapse * vars.Gamma[i] * d1.phi[i];
-}
-
-FOR2  (i,j)
-{
-    rhs.Pi += h_UU[i][j]*( - vars.chi * vars.lapse * d2.phi[i][j]
-                           + 0.5 * d1.chi[i] * vars.lapse * d1.phi[j]
-                           - vars.chi * d1.lapse[i] * d1.phi[j]);
-}
+// start filling in Magnetic fields
+rhs.Bx = LieBetaBx + vars.lapse * (vars.K * vars.Bx - 2. * KijBj[ix] + d1.Lambda[ix]);
+rhs.By = LieBetaBy + vars.lapse * (vars.K * vars.By - 2. * KijBj[iy] + d1.Lambda[iy]);
+rhs.Bz = LieBetaBz + vars.lapse * (vars.K * vars.Bz - 2. * KijBj[iz]);
 
 // explicit loops here as we want to loop over z cartoon terms included here
 for (int j=0; j<3; j++){
@@ -689,28 +739,78 @@ for (int k=0; k<3; k++){
 for (int m=0; m<3; m++){
 for (int n=0; n<3; n++){
 
-    rhs.Ex += epsLLL[0][j][k] * vars.chi * vars.chi
+    rhs.Ex += epsLLL[ix][j][k] * vars.chi * vars.chi
                               * h_UU_3d[j][m] * h_UU_3d[k][n]
-                              * the_E_term[n][m];
-    rhs.Ey += epsLLL[1][j][k] * vars.chi * vars.chi
+                              * the_E_term[m][n];
+
+    rhs.Ey += epsLLL[iy][j][k] * vars.chi * vars.chi
                               * h_UU_3d[j][m] * h_UU_3d[k][n]
-                              * the_E_term[n][m];
-    rhs.Ez += epsLLL[2][j][k] * vars.chi * vars.chi
+                              * the_E_term[m][n];
+
+    rhs.Ez += epsLLL[iz][j][k] * vars.chi * vars.chi
                               * h_UU_3d[j][m] * h_UU_3d[k][n]
-                              * the_E_term[n][m];
-    rhs.Bx += epsLLL[0][j][k] * vars.chi * vars.chi
+                              * the_E_term[m][n];
+
+    rhs.Bx += epsLLL[ix][j][k] * vars.chi * vars.chi
                               * h_UU_3d[j][m] * h_UU_3d[k][n]
-                              * the_B_term[n][m];
-    rhs.By += epsLLL[1][j][k] * vars.chi * vars.chi
+                              * the_B_term[m][n];
+
+    rhs.By += epsLLL[iy][j][k] * vars.chi * vars.chi
                               * h_UU_3d[j][m] * h_UU_3d[k][n]
-                              * the_B_term[n][m];
-    rhs.Bz += epsLLL[2][j][k] * vars.chi * vars.chi
+                              * the_B_term[m][n];
+
+    rhs.Bz += epsLLL[iz][j][k] * vars.chi * vars.chi
                               * h_UU_3d[j][m] * h_UU_3d[k][n]
-                              * the_B_term[n][m];
+                              * the_B_term[m][n];
 }}}}
+
+
+//////////////////////////////////////////////
+// Constraint damping stuff
+// https://arxiv.org/pdf/1706.09875
+
+// decay parameters
+data_t kappa_B = 1.0, kappa_E = 1.0;
+
+// maxwell constraint damper vars
+
+// magnetic constraint damper is Lambda
+rhs.Lambda = advec.Lambda + vars.lapse * ( divB - kappa_B * vars.Lambda);
+
+// electric constraint damper is Xi
+
+// ansats 1 (Lehner paper)
+rhs.Xi = advec.Xi - vars.lapse * (divE - 2. * EdotDphi * fprime
+                                       + kappa_E * vars.Xi);
+
 
 // were done, phew!
 
 }
 
 #endif /* CCZ4CARTOON_IMPL_HPP_ */
+
+
+
+// old
+
+// /////////////////////////////////
+// // scalar field vars
+// rhs.phi = advec.phi - vars.lapse * vars.Pi;
+// rhs.Pi = advec.Pi + vars.lapse * vars.K * vars.Pi
+//                   - ooy * vars.lapse * h_UU_ww * vars.chi * d1.phi[iy]
+//                   -0.5 * vars.lapse * fprime * coupling * FF;
+// // strictly the Gamma here absorbs the Z vector automatically.
+// // chris_contracted[i] doesnt, it is -partial_i h^{ij}
+// FOR (i)
+// {
+//     rhs.Pi += (1.-latch) * vars.chi * vars.lapse * chris_contracted[i] * d1.phi[i];
+//     rhs.Pi += latch * vars.chi * vars.lapse * vars.Gamma[i] * d1.phi[i];
+// }
+//
+// FOR2  (i,j)
+// {
+//     rhs.Pi += h_UU[i][j]*( - vars.chi * vars.lapse * d2.phi[i][j]
+//                            + 0.5 * d1.chi[i] * vars.lapse * d1.phi[j]
+//                            - vars.chi * d1.lapse[i] * d1.phi[j]);
+// }

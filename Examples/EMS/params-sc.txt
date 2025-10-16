@@ -47,7 +47,7 @@ N3 = 256
 L = 512
 
 # Maximum number of times you can regrid above coarsest level
-max_level = 6 # There are (max_level+1) grids, so min is zero
+max_level = 7 # There are (max_level+1) grids, so min is zero
 
 # Frequency of regridding at each level and thresholds on the tagging
 # Need one for each level except the top one, ie max_level items
@@ -120,7 +120,7 @@ G_Newton = 1.0
 gridpoints = 50000 # resolution of initial data
 binary = false # make false for one object
 boosted = true #
-boost_rapidity = 0.4 #
+boost_rapidity = 0.0 # 0.5495 #
 ems_not_rn = true # make true for ems initial data, false for rn
 separation = 128.0 # separation in x
 # centre of the star - only uncomment if you want star off centre
@@ -137,7 +137,7 @@ ems_alpha = 0.0 # 12.566370614359172 # 4 pi for conversino to fabrizio's units
 ems_f0 = 0.0
 ems_f1 = 0.0
 # lambda_me = lambda_fabrizio*4*pi, so i absorb the 4 pi into alpha
-ems_f2 = -20.0 #
+ems_f2 = 0.0 #
 # must be included, or will fail with default in pp.load()
 # ems_data_path = "initial_data/scalarized_lambda-225_t0.dat"
 ems_data_path = "initial_data/schwarzschild_t0_rinf1340_high_res.dat"
@@ -169,7 +169,7 @@ lapse_coeff = 2.0
 lapse_power = 1.0
 
 # Shift evolution
-shift_advec_coeff = 0.0 # Usually no advection for beta
+shift_advec_coeff = 1.0 # Usually no advection for beta
 shift_Gamma_coeff = 0.75
 eta = 1.0 # eta of gamma driver, should be of order ~1/M_ADM of spacetime
 

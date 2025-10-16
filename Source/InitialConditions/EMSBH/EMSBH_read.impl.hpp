@@ -44,11 +44,11 @@ template <class data_t> void EMSBH_read::compute(Cell<data_t> current_cell) cons
     if (m_params_EMSBH.boosted)
     {
       // one boost
-      compute_boost(current_cell, -1.);
+      compute_boost2(current_cell, -1.);
       // other boost
       if (m_params_EMSBH.binary)
       {
-          compute_boost(current_cell, 1.);
+          compute_boost2(current_cell, 1.);
       }
     }
     else {
@@ -691,8 +691,1012 @@ template <class data_t> void EMSBH_read::compute_single(Cell<data_t> current_cel
 
 
 
+// // Compute the value of first bh the initial vars on the grid
+// template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
+//                                                           , double a_sign) const
+// {
+//     CCZ4CartoonVars::VarsWithGauge<data_t> vars;
+//     // Load variables (should be set to zero)
+//     current_cell.load_vars(vars);
+//     // VarsTools::assign(vars, 0.); // Set only the non-zero components below
+//     Coordinates<data_t> coords(current_cell, m_dx, m_params_EMSBH.star_centre);
+//
+//
+//     // binary parameters
+//     bool binary = m_params_EMSBH.binary;
+//     double separation = m_params_EMSBH.separation;
+//     double rapidity = m_params_EMSBH.rapidity;
+//
+//     // matter conversion from unit conventions
+//     const double root_kappa = 1./sqrt(8.*M_PI);
+//
+//     // the kroneka delta
+//     const double kroneka_delta[3][3] = {{1., 0., 0.}, {0., 1., 0.}, {0., 0., 1.}};
+//
+//
+//     // protected single letter names
+//     // a, b, r, x, y, z, X
+//
+//
+//
+//     ////////////////////////////
+//     // 4 - METRIC
+//     ////////////////////////////
+//
+//     // 4-metrics for boosting numerically
+//     double gmunu[4][4] = {
+//                  {0., 0., 0., 0.},
+//                  {0., 0., 0., 0.},
+//                  {0., 0., 0., 0.},
+//                  {0., 0., 0., 0.}
+//     };
+//     double gmunu_boosted[4][4] = {
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.}
+//     };
+//     double gmunu_inv[4][4] = {
+//                  {0., 0., 0., 0.},
+//                  {0., 0., 0., 0.},
+//                  {0., 0., 0., 0.},
+//                  {0., 0., 0., 0.}
+//     };
+//     double gmunu_inv_boosted[4][4] = {
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.}
+//     };
+//
+//     // remember ADM decomp
+//     // g_tt = -lapse^2 + shift^2
+//     // g_ti = shift_i
+//     // g_ij = gamma_ij
+//
+//
+//
+//
+//     ////////////////////////////
+//     // 4 - BOOST MATRICES
+//     ////////////////////////////
+//
+//     // boost matrix
+//     const double c_ = cosh(rapidity);
+//     // use sign = 1 to denote positive velocity boost
+//     // aka BH moves towards the right
+//     const double s_ = sinh(a_sign * rapidity);
+//
+//     // Boost matrix
+//     // remember time index is 3.
+//     // For co-tensor components
+//     // from rest frame to lab frame
+//     const double Lambda[4][4] = {
+//                 {c_, 0., 0., -s_},
+//                 {0., 1., 0., 0.},
+//                 {0., 0., 1., 0.},
+//                 {-s_, 0., 0., c_}
+//     };
+//     // inverse boosts upsairs indices
+//     const double Lambda_inv[4][4] = {
+//                 {c_, 0., 0., s_},
+//                 {0., 1., 0., 0.},
+//                 {0., 0., 1., 0.},
+//                 {s_, 0., 0., c_}
+//     };
+//
+//     // identity matrix for shits and giggles
+//     const double I4[4][4] = {
+//                 {1., 0., 0., 0.},
+//                 {0., 1., 0., 0.},
+//                 {0., 0., 1., 0.},
+//                 {0., 0., 0., 1.}
+//     };
+//
+//
+//
+//     ////////////////////////////
+//     // COORDINATES
+//     ////////////////////////////
+//
+//
+//     // coord objects
+//     // sign = 1 corresponds to bh positioned to the left of the binary
+//     double x = c_ * (coords.x + a_sign * 0.5 * separation);
+//     double z = 0.; // coords.z;
+//     double y = coords.y;
+//     double cart_coords[3] = {x, y, z};
+//
+//     // radii and safe (divisible) radii
+//     double r = sqrt(x * x + y * y + z * z);
+//     double safe_r = sqrt(x * x + y * y + z * z + 10e-20);
+//     double rho = sqrt(x * x + y * y);
+//     double safe_rho = sqrt(x * x + y * y + 10e-20);
+//
+//     // trig functions
+//     double sintheta = rho/safe_r;
+//     double costheta = z/safe_r;
+//     double sinphi = y/safe_rho;
+//     double cosphi = x/safe_rho;
+//
+//     double cosphi2 = cosphi*cosphi;
+//     double costheta2 = costheta*costheta;
+//     double sinphi2 = sinphi*sinphi;
+//     double sintheta2 = sintheta*sintheta;
+//
+//     // jacobeans
+//     double dx_dr = cosphi*sintheta;
+//     double dy_dr = sinphi*sintheta;
+//     double dz_dr = costheta;
+//     double dr_dx = (x / safe_r);
+//     double dr_dy = (y / safe_r);
+//     double dr_dz = (z / safe_r);
+//     double dth_dx = x*z/(safe_r*safe_r*safe_rho);
+//     double dth_dy = y*z/(safe_r*safe_r*safe_rho);
+//     double dth_dz = -rho/(safe_r*safe_r);
+//     double dph_dx = -y/(safe_rho*safe_rho);
+//     double dph_dy = x/(safe_rho*safe_rho);
+//     double dph_dz = 0.;
+//
+//     // partial cartesian coords (i) by partial polar coords (j)
+//     // dxc_dxp[i][j]
+//     // i = {x,y,z}
+//     // j = {r,th,ph}
+//     double dxc_dxp[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     dxc_dxp[0][0] = dx_dr;
+//     dxc_dxp[1][0] = dy_dr;
+//     dxc_dxp[2][0] = dz_dr;
+//     dxc_dxp[0][1] = r * cosphi * costheta;
+//     dxc_dxp[1][1] = r * sinphi * costheta;
+//     dxc_dxp[2][1] = -r * sintheta;
+//     dxc_dxp[0][2] = -r * sinphi * sintheta;
+//     dxc_dxp[1][2] = r * cosphi * sintheta;
+//     dxc_dxp[2][2] = 0.; // dz/dphi=0
+//
+//     // partial polar coords (i) by partial cartesian coords (j)
+//     // dxp_dxc[i][j]
+//     // i = {r,th,ph}
+//     // j = {x,y,z}
+//     double dxp_dxc[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     dxp_dxc[0][0] = dr_dx;
+//     dxp_dxc[0][1] = dr_dy;
+//     dxp_dxc[0][2] = dr_dz;
+//     dxp_dxc[1][0] = x * z / (safe_r * safe_r * safe_rho);
+//     dxp_dxc[1][1] = y * z / (safe_r * safe_r * safe_rho);
+//     dxp_dxc[1][2] = - rho / (safe_r * safe_r);
+//     dxp_dxc[2][0] = - y / (safe_rho * safe_rho);
+//     dxp_dxc[2][1] = x / (safe_rho * safe_rho);
+//     dxp_dxc[2][2] = 0.; // dphi/dz=0
+//
+//
+//
+//     ////////////////////////////
+//     // LOAD RADIAL SOLUTION
+//     ////////////////////////////
+//
+//     // gamma_polar = 1/X^2 (a dr^2 + b r^2 (dth^2 + sin^2(th) dph^2))
+//     double X = m_1d_sol.get_value_interp_o4(m_1d_sol.X,r);
+//     double a = m_1d_sol.get_value_interp_o4(m_1d_sol.a,r);
+//     double b = m_1d_sol.get_value_interp_o4(m_1d_sol.b,r);
+//     double alpha = m_1d_sol.get_value_interp_o4(m_1d_sol.lapse,r);
+//     double betaR = m_1d_sol.get_value_interp_o4(m_1d_sol.shift,r);
+//     double dXdr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.X,r);
+//     double dadr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.a,r);
+//     double dbdr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.b,r);
+//     double dalpha_dr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.lapse,r);
+//     double dbetaR_dr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.shift,r);
+//     //
+//     double X2 = X*X;
+//     double X3 = X2*X;
+//     double s2 = s_*s_;
+//     double c2 = c_*c_;
+//     double a2 = alpha*alpha;
+//     // some time derivs - from gauge conditions of Fabrizio
+//     double dalpha_dt = -2.*a*m_1d_sol.get_value_interp_o4(m_1d_sol.K,r);
+//     double dbetaR_dt = m_1d_sol.get_value_interp_o4(m_1d_sol.Br,r);
+//     double d_gamma_rr_dr = dadr/X2 - 2.*a*dXdr/X3;
+//     double dt_shift[3] = {x/safe_r*dbetaR_dt,
+//                           y/safe_r*dbetaR_dt,
+//                           z/safe_r*dbetaR_dt};
+//
+//
+//
+//     //////////////////////////////////
+//     // CONSTRUCT SPATIAL METRICS
+//     //////////////////////////////////
+//
+//     // spatial metrics
+//     double gamma_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     gamma_polar[0][0] = a/X/X;
+//     gamma_polar[1][1] = b*r*r/X/X;
+//     gamma_polar[2][2] = b*pow(sintheta*r/X,2);
+//     double gamma_polar_inv[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     gamma_polar_inv[0][0] = 1./gamma_polar[0][0];
+//     gamma_polar_inv[1][1] = 1./gamma_polar[1][1];
+//     gamma_polar_inv[2][2] = 1./gamma_polar[2][2];
+//     double gamma[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     double gamma_inv[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//
+//     // create cartesian metric from transformation of polar version
+//     // explicit loops here include z direction
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//     for (int m=0; m<3; m++){
+//     for (int n=0; n<3; n++){
+//         gamma[i][j] += gamma_polar[m][n]*dxp_dxc[m][i]*dxp_dxc[n][j];
+//         gamma_inv[i][j] += gamma_polar_inv[m][n]*dxc_dxp[i][m]*dxc_dxp[j][n];
+//     }}}}
+//     // spatial volume element for B boost field
+//     double root_gamma = 0.;
+//     // this is the same
+//     // root_gamma += gamma[0][0] * (gamma[1][1]*gamma[2][2]
+//     //                           - gamma[1][2]*gamma[2][1]);
+//     // root_gamma += gamma[0][1] * (gamma[1][2]*gamma[2][0]
+//     //                           - gamma[1][0]*gamma[2][2]);
+//     // root_gamma += gamma[0][2] * (gamma[1][0]*gamma[2][1]
+//     //                           -gamma[1][1]*gamma[2][0]);
+//     root_gamma = sqrt(a)*b/X3;
+//
+//
+//
+//     //////////////////////////////////////////////
+//     // Lie derivative of gamma_ij w.r.t. shift
+//     //////////////////////////////////////////////
+//     double LieBeta_gamma_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     double LieBeta_gamma_cart[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//
+//     // total lie derivative
+//     LieBeta_gamma_polar[0][0] = (X*betaR*dadr - 2.*a*betaR*dXdr + 2.*a*X*dbetaR_dr)/X3;
+//     LieBeta_gamma_polar[1][1] = r*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
+//     LieBeta_gamma_polar[2][2] = r*sintheta2*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
+//
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//     for (int m=0; m<3; m++){
+//     for (int n=0; n<3; n++){
+//        LieBeta_gamma_cart[i][j] += dxp_dxc[n][j] * dxp_dxc[m][i] * LieBeta_gamma_polar[m][n];
+//     }}}}
+//
+//
+//
+//     ////////////////////////////////
+//     // POPULATE 4 METRIC
+//     ////////////////////////////////
+//
+//     // note that time index is 3 not 0!
+//     // x,y,z,t = 0,1,2,3 -- throughout !
+//
+//     // cartesian shift setup
+//
+//     double beta_squared = 0.;
+//     double beta_U[3] = {0.,0.,0.}; // upper components
+//     double beta_L[3] = {0.,0.,0.}; // lower components
+//     beta_U[0] = dx_dr * betaR;
+//     beta_U[1] = dy_dr * betaR;
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//         beta_L[i] += gamma[i][j] * beta_U[j];
+//     }}
+//     for (int i=0; i<3; i++){
+//         beta_squared += beta_L[i] * beta_U[i];
+//     }
+//
+//     // ADM metric formula for creating 4d metric from 3d component
+//     // CAREFUL, TIME INDEX IS 3 HERE !!!!!!!
+//
+//     // g_tt, time-time part
+//     gmunu[3][3] = - alpha * alpha + beta_squared;
+//     gmunu_inv[3][3] = -1./(alpha*alpha);
+//
+//     // g_it, space-time mixed part
+//     for (int i=0; i<3; i++){
+//         gmunu[3][i] = beta_L[i];
+//         gmunu[i][3] = beta_L[i];
+//         gmunu_inv[3][i] = beta_U[i] / (alpha*alpha);
+//         gmunu_inv[i][3] = beta_U[i] / (alpha*alpha);
+//     }
+//
+//     // g_ij, space space part
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//         gmunu[i][j] = gamma[i][j];
+//         gmunu_inv[i][j] = gamma_inv[i][j] - beta_U[i]*beta_U[j]/(alpha*alpha);
+//     }}
+//
+//
+//
+//     ///////////////////////////////
+//     // DO THE BOOST ON 4-METRIC
+//     ///////////////////////////////
+//
+//     // Do the boost ! // need 0-3 indices here, hence <4
+//     for (int m=0; m<4; m++){
+//     for (int n=0; n<4; n++){
+//     for (int t=0; t<4; t++){
+//     for (int s=0; s<4; s++){
+//         gmunu_boosted[m][n] += Lambda[m][t] * Lambda[n][s]
+//                              * gmunu[t][s];
+//         gmunu_inv_boosted[m][n] += Lambda_inv[m][t] * Lambda_inv[n][s]
+//                                  * gmunu_inv[t][s];
+//     }}}}
+//
+//     // no boost 1
+//     // for (int m=0; m<4; m++){
+//     // for (int n=0; n<4; n++){
+//     // for (int q=0; q<4; q++){
+//     // for (int s=0; s<4; s++){
+//     //     gmunu_boosted[m][n] += I4[m][q] * I4[n][s] * gmunu[q][s];
+//     //     gmunu_inv_boosted[m][n] += I4[m][q] * I4[n][s] * gmunu_inv[q][s];
+//     // }}}}
+//
+//     // no boost 2
+//     // for (int m=0; m<4; m++){
+//     // for (int n=0; n<4; n++){
+//     //     gmunu_boosted[m][n] = gmunu[m][n];
+//     //     gmunu_inv_boosted[m][n] = gmunu_inv[m][n];
+//     // }}
+//
+//
+//
+//     ///////////////////////////////////////
+//     // ADM DECOMPOSE BOOSTED 4-METRIC
+//     ///////////////////////////////////////
+//
+//     // 3+1 ADM decomp to get boosted lapse, shift, gamma_ij
+//
+//     // the boosted shift
+//     double boosted_beta_U[3] = {0.,0.,0.}; // upper components
+//     double boosted_beta_L[3] = {0.,0.,0.}; // lower components
+//     Tensor<2, data_t, 3> boosted_gamma_LL = {0.};
+//     double beta_boost_sqr = 0.;
+//
+//     for (int i=0; i<3; i++){
+//         boosted_beta_L[i] = gmunu_boosted[3][i];
+//     }
+//
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//         boosted_gamma_LL[i][j] = gmunu_boosted[i][j];
+//     }}
+//     // boosted spatial volume element for B boost field
+//     double root_gamma_tilde = 0.;
+//     root_gamma_tilde += boosted_gamma_LL[0][0] * (
+//                               boosted_gamma_LL[1][1]*boosted_gamma_LL[2][2]
+//                               - boosted_gamma_LL[1][2]*boosted_gamma_LL[2][1]
+//                                                  );
+//     root_gamma_tilde += boosted_gamma_LL[0][1] * (
+//                               boosted_gamma_LL[1][2]*boosted_gamma_LL[2][0]
+//                               - boosted_gamma_LL[1][0]*boosted_gamma_LL[2][2]
+//                                                 );
+//     root_gamma_tilde += boosted_gamma_LL[0][2] * (
+//                               boosted_gamma_LL[1][0]*boosted_gamma_LL[2][1]
+//                               - boosted_gamma_LL[1][1]*boosted_gamma_LL[2][0]
+//                                                  );
+//     root_gamma_tilde = sqrt(root_gamma_tilde);
+//
+//     // auto boosted_gamma_UU = TensorAlgebra::compute_inverse_sym(boosted_gamma_LL);
+//
+//     // for (int i=0; i<3; i++){
+//     // for (int j=0; j<3; j++){
+//     //     boosted_beta_U[i] += boosted_beta_L[j] * boosted_gamma_UU[j][i];
+//     // }}
+//     for (int i=0; i<3; i++){
+//         boosted_beta_U[i] = -gmunu_inv_boosted[3][i]/gmunu_inv_boosted[3][3];
+//     }
+//
+//     for (int i=0; i<3; i++){
+//         beta_boost_sqr += boosted_beta_L[i] * boosted_beta_U[i];
+//     }
+//
+//     // needed to calculate normal vector and Pi, Kij, Fmunu ...
+//     double boost_lapse = 0., blt = 0., lapse_diff_err = 0., shiftsqrdiff = 0.;
+//     double metric_diff = 0.;
+//     boost_lapse = sqrt(beta_boost_sqr - gmunu_boosted[3][3]);
+//     blt = sqrt(-1./gmunu_inv_boosted[3][3]); // boost lapse test
+//     lapse_diff_err = abs(blt-alpha);
+//     shiftsqrdiff = abs(beta_boost_sqr-beta_squared);
+//
+//     for (int i=0; i<4; i++){
+//     for (int j=0; j<4; j++){
+//         metric_diff += pow(gmunu_boosted[i][j]-gmunu[i][j],2);
+//     }}
+//
+//
+//
+//
+//     ///////////////////////////////////////
+//     // STORE BOOSTED SHIFT AND GAMMA_IJ
+//     ///////////////////////////////////////
+//
+//     // lapse likely not used and later over-written
+//     vars.lapse += boost_lapse;
+//     vars.shift[0] += boosted_beta_U[0];
+//     vars.shift[1] += boosted_beta_U[1];
+//     // no z shift
+//
+//     // test evaluation of shift y
+//     // double test_beta_y = boost_lapse*boost_lapse*(c_/alpha/alpha*beta_U[1]);
+//     // test_beta_y += boost_lapse*boost_lapse*(s_*gmunu_inv[0][1]);
+//     // vars.shift[1] += -test_beta_y;
+//
+//     // don't loop z direction
+//     // store physical metric for now
+//     FOR2(i,j)
+//     {
+//         vars.h[i][j] += gmunu_boosted[i][j]; // physical metric for now
+//     }
+//     //cartoon terms
+//     vars.hww += gmunu_boosted[2][2]; // physical metric for now
+//
+//
+//
+//
+//     ///////////////////////////
+//     // SCALAR FIELD
+//     //////////////////////////
+//
+//     vars.phi += m_1d_sol.get_value_interp_o4(m_1d_sol.phi,r)*root_kappa;
+//
+//
+//
+//     // derivatives are rest frame
+//     double dphi_dr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.phi,r)*root_kappa;
+//     // minus sign from different convention to Fabrizio
+//     double default_pi = -m_1d_sol.get_value_interp_o4(m_1d_sol.pi,r)*root_kappa;
+//     double dphi_dx = dphi_dr * dr_dx;
+//     double dphi_dy = dphi_dr * dr_dy;
+//
+//     // close to zero but might not quite be
+//     double dphi_dt = 0.;
+//     dphi_dt = - alpha * default_pi + beta_U[0]*dphi_dx + beta_U[1]*dphi_dy;
+//
+//     // boost done implicitly here
+//     vars.Pi += (1./boost_lapse) * (
+//                     - (c_ + boosted_beta_U[0] * s_) * dphi_dt
+//                     + (s_ + boosted_beta_U[0] * c_) * dphi_dx
+//                           + boosted_beta_U[1]       * dphi_dy);
+//
+//     // hard remove singularity in Pi
+//     // if (vars.Pi > 0.018)
+//     // {
+//     //     vars.Pi = -0.019;
+//     // }
+//
+//     // used this to check if the calculated Pi is similar to the read one
+//     // it is almost identical
+//     // only uncomment for testing
+//     // vars.Pi -= default_pi;
+//
+//
+//
+//
+//     ////////////////////////
+//     // ELECTROMAGNETISM
+//     ////////////////////////
+//
+//     // loading the upstairs E^r then lower with gamma_rr = a/(X*X)
+//     double EUr = m_1d_sol.get_value_interp_o4(m_1d_sol.Er,r)*root_kappa;
+//
+//     // proxy equation
+//     // EUr = sqrt(0.00002758) * r * r * exp(-r*r) / 0.3678 ;
+//
+//     double E_r = EUr * gamma_polar[0][0];
+//
+//     // only included non-zero temrs in boost, this is not generic!!
+//     double Ex = dr_dx * E_r;
+//     double Ey = dr_dy * E_r;
+//     double Ez = dr_dz * E_r; // shoudl be 0
+//
+//     // boost calcualted by hand (differential forms make this easier)
+//     // vars.Ex += Ex * alpha / boost_lapse;
+//     // vars.Ey += c_ * Ey * alpha / boost_lapse;
+//     // vars.Ez += c_ * Ez * alpha / boost_lapse;
+//     // vars.Bx += 0.;
+//     // vars.By += 0.;
+//     // //vars.Bz += alpha * s_ * Ey * gmunu_boosted[2][2] / root_gamma_tilde;
+//     // vars.Bz += boost_lapse * s_ * Ey * gmunu_boosted[2][2] / root_gamma;
+//
+//     // vars.Ex += a * cosphi * alpha * EUr / X2 / boost_lapse;
+//     // vars.Ey += a * c_ * sinphi * alpha * EUr / X2 / boost_lapse;
+//     // vars.Bz += a * sinphi * s_ * alpha * EUr * boosted_gamma_LL[2][2] / X2 / root_gamma_tilde;
+//     //
+//     // // shubbezeros
+//     // vars.Ez += 0.;
+//     // vars.Bx += 0.;
+//     // vars.By += 0.;
+//
+//     // list of ok'ed components
+//     // gmunu boost : passed
+//     // gmunu * gmunuinv = 4 : passed
+//     // gmunu inverse : seems fine
+//     // lapse : passed
+//     // shift : passed
+//
+//     // numerical F boost
+//     double faraday[4][4] = {
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.}
+//     };
+//     faraday[3][0] = -alpha*Ex;
+//     faraday[0][3] = alpha*Ex;
+//     faraday[3][1] = -alpha*Ey;
+//     faraday[1][3] = alpha*Ey;
+//
+//     double faraday_boosted[4][4] = {
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.}
+//     };
+//
+//     for (int m=0; m<4; m++){
+//     for (int n=0; n<4; n++){
+//     for (int r=0; r<4; r++){
+//     for (int s=0; s<4; s++){
+//       faraday_boosted[m][n] +=        Lambda[m][r]
+//                                     * Lambda[n][s]
+//                                     * faraday[r][s];
+//     }}}}
+//
+//     // purely spatial components of Fmunu
+//     double Bmunu_boosted[4][4] = {
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.},
+//                 {0., 0., 0., 0.}
+//     };
+//
+//     // unit time normals
+//     double nU[4] = {0., 0., 0., 0.};
+//     double nL[4] = {0., 0., 0., 0.};
+//     nL[3] = -boost_lapse;
+//     nU[0] = -boosted_beta_U[0]/boost_lapse;
+//     nU[1] = -boosted_beta_U[1]/boost_lapse;
+//     nU[2] = -boosted_beta_U[2]/boost_lapse;
+//     nU[3] = 1./boost_lapse;
+//
+//     // spatial projection (with respect to boost/tilde)
+//     for (int m=0; m<4; m++){
+//     for (int n=0; n<4; n++){
+//     for (int r=0; r<4; r++){
+//     for (int s=0; s<4; s++){
+//       Bmunu_boosted[m][n] += (I4[m][r] + nU[r] * nL[m])
+//                            * (I4[n][s] + nU[s] * nL[n])
+//                            * faraday_boosted[r][s];
+//     }}}}
+//
+//     // re-make leccy fields in boosted frame
+//     for (int m=0; m<4; m++){
+//       vars.Ex += - nU[m] * faraday_boosted[m][0];
+//       vars.Ey += - nU[m] * faraday_boosted[m][1];
+//       vars.Ez += - nU[m] * faraday_boosted[m][2];
+//     }
+//
+//     //  cheat method allowed bcos i checked thet other y and x components vanish
+//     vars.Bz += Bmunu_boosted[0][1] * boosted_gamma_LL[2][2] / root_gamma_tilde;
+//
+//
+//
+//
+//
+//
+//     ////////////////////////////////////
+//     // LOAD EXTRINSIC CURVATURE K_IJ
+//     ////////////////////////////////////
+//
+//     // fabrizio's mixed conformal traceless curvature, then make downstairs
+//     // THIS ASSUMES DIAGONAL METRIC
+//     // angular parts must give trace 0
+//     double AaaUL = m_1d_sol.get_value_interp(m_1d_sol.Aa,r);
+//     double inputK = m_1d_sol.get_value_interp(m_1d_sol.K,r);
+//     double Kij_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     // this is NOT the conformal A, its simply (K_ij-K gamma_ij/3)
+//     // becuase i believe that Fabrizios trK is automatically zero
+//     Kij_polar[0][0] = (AaaUL - inputK/3.)*gamma_polar[0][0];
+//     Kij_polar[1][1] = (-0.5*AaaUL- inputK/3.)*gamma_polar[1][1];
+//     Kij_polar[2][2] = (-0.5*AaaUL- inputK/3.)*gamma_polar[2][2];
+//
+//     // could be useful for debugging
+//     double Kij_rest_frame[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//     for (int m=0; m<3; m++){
+//     for (int n=0; n<3; n++){
+//        Kij_rest_frame[i][j] += dxp_dxc[n][j] * dxp_dxc[m][i] * Kij_polar[m][n];
+//     }}}}
+//
+//     double L_beta_gamma_rr = 2. * gamma_polar[0][0] * dbetaR_dr;
+//     L_beta_gamma_rr += betaR * d_gamma_rr_dr;
+//     double d_gamma_rr_dt = L_beta_gamma_rr-2.*alpha*Kij_polar[0][0];
+//
+//
+//
+//
+//     ////////////////////////////////////////
+//     // BOOSTED EXTRINSIC CURVATURE SETUP
+//     ////////////////////////////////////////
+//
+//     // heres the overview
+//
+//     // step 1 : create rest frame 4d cartesian derivs d_a g_bc
+//     // step 2 : boost d_a g_bc to lab frame
+//     // step 3 :
+//     // step 4 :
+//
+//
+//     ////////////////////////////////////////
+//     // Aij step 1 :  create d_a g_bc 4d carts
+//     ////////////////////////////////////////
+//
+//     // time derivative of gamma_ij and stuff
+//     double dt_gamma[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     double dt_tilde_gamma_boost[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//
+//     // Lie derivative of boosted gamma_ij
+//     double L_b_gamma_boost[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//
+//     // metric gradients -- big objects ....
+//     double d_4metric[4][4][4] = {
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}}
+//     };
+//     double d_4metric_boosted[4][4][4] = {
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}}
+//     };
+//     double d_inv_4metric_boosted[4][4][4] = {
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
+//       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}}
+//     };
+//     double dr_4metric[4][4] = {{0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.}};
+//     double dth_4metric[4][4] = {{0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.}};
+//     double dph_4metric[4][4] = {{0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.}};
+//     double dt_4metric[4][4] = {{0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.},
+//                                {0., 0., 0., 0.}};
+//
+//
+//     // time derivs of 4d metric
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//         dt_4metric[i][j] = LieBeta_gamma_cart[i][j] - 2.*alpha*Kij_rest_frame[i][j];
+//     }}
+//     // tt component
+//     dt_4metric[3][3] = -2.*alpha*dalpha_dt
+//                              + betaR*betaR*d_gamma_rr_dt
+//                              + 2.*gamma_polar[0][0]*betaR*dbetaR_dr;
+//     // CRUCIAL TO ENSURE THE SPATIAL PART OF dt_4metric is already calculated
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//         dt_4metric[3][j] += gamma_polar[i][j] * dt_shift[i] + beta_U[i]*dt_4metric[i][j];
+//     }
+//     }
+//     // symmetriser
+//     dt_4metric[0][3] = dt_4metric[3][0];
+//     dt_4metric[1][3] = dt_4metric[3][1];
+//     dt_4metric[2][3] = dt_4metric[3][2];
+//
+//
+//
+//     ////////////////////////////////////////
+//     // CALCULATE REST FRAME METRIC DERIVS
+//     ////////////////////////////////////////
+//
+//     // oh boy here we go .... time to calcualte d_g ...
+//     // in cartesian gauge, but expressed in polars for ease
+//
+//     /////////////////////
+//     // // d g \ d r
+//     // xx
+//     dr_4metric[0][0] = (cosphi2*dadr+sinphi2*dbdr)/X2;
+//     dr_4metric[0][0] += -2.*(a*cosphi2 + b*sinphi2)*dXdr/X3;
+//     // xy
+//     dr_4metric[0][1] = cosphi*sinphi*(dadr-dbdr)/X2;
+//     dr_4metric[0][1] += -2.*cosphi*sinphi*(a-b)*dXdr/X3;
+//     dr_4metric[1][0] = dr_4metric[0][1];
+//     // xz = 0
+//     // yy
+//     dr_4metric[1][1] = (sinphi2*dadr + cosphi2*dbdr)/X2;
+//     dr_4metric[1][1] += -2.*(a*sinphi2 + b*cosphi2)*dXdr/X3;
+//     // yz = 0
+//     // zz
+//     dr_4metric[2][2] = dbdr/X2 - 2.*b*dXdr/X3;
+//     // tt
+//     dr_4metric[3][3] = -2.*a*betaR*betaR*dXdr/X3 - 2.*alpha*dalpha_dr;
+//     dr_4metric[3][3] += betaR * (betaR * dadr + 2. * a * dbetaR_dr)/X2;
+//     // tx
+//     dr_4metric[0][3] = cosphi*(-2.*a*betaR*dXdr + X*(betaR*dadr + a*dbetaR_dr))/X3;
+//     dr_4metric[3][0] = dr_4metric[0][3];
+//     // ty
+//     dr_4metric[1][3] = sinphi*(-2.*a*betaR*dXdr + X*(betaR*dadr + a*dbetaR_dr))/X3;
+//     dr_4metric[3][1] = dr_4metric[1][3];
+//     // tz = 0
+//
+//     //////////////////////
+//     // // d g \ d th
+//     // xx = 0
+//     // xy = 0
+//     // xz
+//     dth_4metric[0][2] = -(a-b)*cosphi/X2;
+//     dth_4metric[2][0] = dth_4metric[0][2];
+//     // yy = 0
+//     // yz
+//     dth_4metric[1][2] = -(a-b)*sinphi/X2;
+//     dth_4metric[2][1] = dth_4metric[1][2];
+//     // zz = 0
+//     // tt = tx = ty = 0
+//     // tz
+//     dth_4metric[2][3] = - a * betaR / X2;
+//     dth_4metric[3][2] = dth_4metric[2][3];
+//
+//     //////////////////////
+//     // // d g \ d ph
+//     // xx
+//     dph_4metric[0][0] = -2.*(a-b)*sinphi*cosphi/X2;
+//     // xy
+//     dph_4metric[0][1] = (a-b)*(cosphi2-sinphi2)/X2;
+//     dph_4metric[1][0] = dph_4metric[0][1];
+//     // xz = 0
+//     // yy
+//     dph_4metric[1][1] = 2.*(a-b)*sinphi*cosphi/X2;
+//     // yz = 0
+//     // zz = 0
+//     // tt = tz = 0
+//     // tx
+//     dph_4metric[0][3] = - a * sinphi * betaR / X2;
+//     dph_4metric[3][0] = dph_4metric[0][3];
+//     // ty
+//     dph_4metric[1][3] = a * cosphi * betaR / X2;
+//     dph_4metric[3][1] = dph_4metric[1][3];
+//
+//
+//     // finally create cartesian 4-metric derivs here
+//     // loops to 4 here for time!! i,j = 0,1,2,3 <-> x,y,z,t
+//     for (int m=0; m<4; m++){
+//     for (int n=0; n<4; n++){
+//         d_4metric[0][m][n] = dr_dx * dr_4metric[m][n]
+//                            + dth_dx * dth_4metric[m][n]
+//                            + dph_dx * dph_4metric[m][n];
+//         d_4metric[1][m][n] = dr_dy * dr_4metric[m][n]
+//                            + dth_dy * dth_4metric[m][n]
+//                            + dph_dy * dph_4metric[m][n];
+//         d_4metric[2][m][n] = dr_dz * dr_4metric[m][n]
+//                            + dth_dz * dth_4metric[m][n]
+//                            + dph_dz * dph_4metric[m][n];
+//         d_4metric[3][m][n] = 0. * dt_4metric[m][n];
+//     }}
+//
+//     ////////////////////////////////////////
+//     // Aij step 2 :  boost d_a g_bc 4d carts
+//     ////////////////////////////////////////
+//
+//     // now boost the results, we have deriv of boosted 4-metric
+//     // with respect to boosted coords
+//     for (int m=0; m<4; m++){
+//     for (int n=0; n<4; n++){
+//     for (int p=0; p<4; p++){
+//     for (int q=0; q<4; q++){
+//     for (int s=0; s<4; s++){
+//     for (int t=0; t<4; t++){
+//         d_4metric_boosted[p][m][n] += Lambda[p][t]
+//                                     * Lambda[m][q]
+//                                     * Lambda[n][s]
+//                                     * d_4metric[t][q][s];
+//     }}}}}}
+//
+//     ///////// d_inverse_g all LAB frame
+//     // meaning metric is in LAB gauge and so are derivs
+//     for (int m=0; m<4; m++){
+//     for (int n=0; n<4; n++){
+//     for (int q=0; q<4; q++){
+//     for (int s=0; s<4; s++){
+//     for (int t=0; t<4; t++){
+//         d_inv_4metric_boosted[t][q][s] -= gmunu_inv_boosted[m][q]
+//                                         * gmunu_inv_boosted[n][s]
+//                                         * d_4metric_boosted[t][m][n];
+//     }}}}}
+//
+//     // calculate the boosted frame shift derivs (quite non trivial)
+//     double dibj_boosted[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     // d_x beta^x  (all boosted)
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//         dibj_boosted[i][j] = boost_lapse * boost_lapse *(
+//                              d_inv_4metric_boosted[i][3][j] // d_i g^{tj}
+//                              + boosted_beta_U[j] *
+//                              d_inv_4metric_boosted[i][3][3] // d_i g^{tt}
+//                                                       );
+//     }}
+//
+//     // feed this into dt_tilde_gamma_boost, both gamma and t are LAB frame
+//     // also calculate the tildebeta dot tildepartial tildegamma of Lie deriv
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//       dt_tilde_gamma_boost[i][j] = d_4metric_boosted[3][i][j];
+//       L_b_gamma_boost[i][j] =  boosted_beta_U[0] * d_4metric_boosted[0][i][j];
+//       L_b_gamma_boost[i][j] += boosted_beta_U[1] * d_4metric_boosted[1][i][j];
+//     }}
+//
+//     // finish Lie deriv
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//     for (int k=0; k<3; k++){
+//       L_b_gamma_boost[i][j] += gmunu_boosted[k][j] * dibj_boosted[i][k];
+//       L_b_gamma_boost[i][j] += gmunu_boosted[i][k] * dibj_boosted[j][k];
+//     }}}
+//
+//     // Finally Kij in LAB frame
+//     double tilde_Kij[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     for (int i=0; i<3; i++){
+//     for (int j=0; j<3; j++){
+//       tilde_Kij[i][j] = -(dt_tilde_gamma_boost[i][j] - L_b_gamma_boost[i][j])
+//                          /(2.*boost_lapse);
+//     }}
+//
+//     // temporary storage of K_ij in A_ij
+//     FOR2(i,j)
+//     {
+//         vars.A[i][j] += tilde_Kij[i][j];
+//     }
+//     //cartoon terms
+//     vars.Aww += tilde_Kij[2][2];
+//
+//
+//     //////////////////////////////////////////
+//     // old stuff left incase needed again
+//     //////////////////////////////////////////
+//
+//
+//     // /////////////////////////////////////
+//     // // shift derivs - rest frame
+//     // double di_betaj[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     //
+//     // // one way of calculating beta deriv
+//     // // for (int j=0; j<3; j++){
+//     // //   di_betaj[0][j] += dr_dx * (dbetaR_dr / safe_r - betaR / pow(safe_r,2)) * cart_coords[j];
+//     // //   di_betaj[1][j] += dr_dy * (dbetaR_dr / safe_r - betaR / pow(safe_r,2)) * cart_coords[j];
+//     // //   di_betaj[2][j] += dr_dz * (dbetaR_dr / safe_r - betaR / pow(safe_r,2)) * cart_coords[j];
+//     // //   // diagonal term
+//     // //   di_betaj[j][j] += betaR / safe_r;
+//     // // }
+//     //
+//     // // alternative way of calculating the beta deriv
+//     // for (int i=0; i<3; i++){
+//     // for (int j=0; j<3; j++){
+//     //   di_betaj[i][j] += betaR * kroneka_delta[i][j] / safe_r;
+//     //   di_betaj[i][j] += cart_coords[i] * cart_coords[j]  *
+//     //                           (dbetaR_dr - betaR/safe_r) *
+//     //                            pow(safe_r,-2);
+//     // }}
+//
+//     //
+//     //
+//     //
+//     //
+//     //
+//     // ///////////////////////////
+//     // // Alternate Kij calc stuff
+//     // ///////////////////////////
+//     // double LieBeta_gamma_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     // double LieBeta_gamma_cart[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     // double dt_gamma_again[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     //
+//     // // total lie derivative
+//     // LieBeta_gamma_polar[0][0] = (X*betaR*dadr - 2.*a*betaR*dXdr + 2.*a*X*dbetaR_dr)/X3;
+//     // LieBeta_gamma_polar[1][1] = r*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
+//     // LieBeta_gamma_polar[2][2] = r*sintheta2*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
+//     //
+//     // // the beta deriv of metric (part 1) ONLY for debug
+//     // // LieBeta_gamma_polar[0][0] = (X*betaR*dadr - 2.*a*betaR*dXdr)/X3;
+//     // // LieBeta_gamma_polar[1][1] = r*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
+//     // // LieBeta_gamma_polar[2][2] = r*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
+//     //
+//     // // the deriv of beta term (part 2) ONLY for debug
+//     // // LieBeta_gamma_polar[0][0] = 2.*a*dbetaR_dr/X2;
+//     //
+//     // for (int i=0; i<3; i++){
+//     // for (int j=0; j<3; j++){
+//     // for (int m=0; m<3; m++){
+//     // for (int n=0; n<3; n++){
+//     //    LieBeta_gamma_cart[i][j] += dxp_dxc[n][j] * dxp_dxc[m][i] * LieBeta_gamma_polar[m][n];
+//     // }}}}
+//     //
+//     // for (int i=0; i<3; i++){
+//     // for (int j=0; j<3; j++){
+//     //   dt_gamma_again[i][j] = LieBeta_gamma_cart[i][j] - 2.*alpha*Kij_rest_frame[i][j];
+//     // }}
+//     //
+//     // ///////////////////////////////
+//     // // third time trying lucky ??
+//     // ///////////////////////////////
+//     //
+//     // double tilde_Kij[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     //
+//     // // boosted d_i beta^j
+//     // double tilde_diBi[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+//     //
+//     //
+//     // // d_i gamma tilde  =  LL d_i gamma
+//     //
+//     // for (int i=0; i<3; i++){
+//     // for (int j=0; j<3; j++){
+//     // for (int r=0; r<3; r++){
+//     // for (int s=0; s<3; s++){
+//     //   tilde_Kij[i][j] += Lambda[i][r] * Lambda[j][s]
+//     //                    * (c_ + boosted_beta_U[0] * s_)
+//     //                    * dt_gamma_again[r][s];
+//     //   tilde_Kij[i][j] += Lambda[i][r] * Lambda[j][s]
+//     //                    * (s_ - boosted_beta_U[0] * c_)
+//     //                    * d_4metric[0][r][s];
+//     //   tilde_Kij[i][j] += Lambda[i][r] * Lambda[j][s]
+//     //                    * (- boosted_beta_U[1])
+//     //                    * d_4metric[1][r][s];
+//     // }}}}
+//     //
+//     // for (int i=0; i<3; i++){
+//     // for (int j=0; j<3; j++){
+//     //   tilde_Kij[i][j] = -1./(2. * boost_lapse) * tilde_Kij[i][j];
+//     // }}
+//
+//
+//     // temporary storage in A_ij
+//     // FOR2(i,j)
+//     // {
+//     //     vars.A[i][j] += tilde_Kij[i][j];
+//     // }
+//     // //cartoon terms
+//     // vars.Aww += tilde_Kij[2][2];
+//
+//
+//
+//     ///////////////////////
+//     // final var storage
+//     ///////////////////////
+//
+//     current_cell.store_vars(vars);
+// }
+
+
+
+
+
+
+
+
+
+///////////////////////////////////////
+
+//     BOOSTED
+
+//     INITIAL
+
+//      DATA 2
+
+///////////////////////////////////////
+
+
+
 // Compute the value of first bh the initial vars on the grid
-template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
+template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cell
                                                           , double a_sign) const
 {
     CCZ4CartoonVars::VarsWithGauge<data_t> vars;
@@ -892,7 +1896,7 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     double c2 = c_*c_;
     double a2 = alpha*alpha;
     // some time derivs - from gauge conditions of Fabrizio
-    double dalpha_dt = -2.*a*m_1d_sol.get_value_interp_o4(m_1d_sol.K,r);
+    double dalpha_dt = -2.*alpha*m_1d_sol.get_value_interp_o4(m_1d_sol.K,r);
     double dbetaR_dt = m_1d_sol.get_value_interp_o4(m_1d_sol.Br,r);
     double d_gamma_rr_dr = dadr/X2 - 2.*a*dXdr/X3;
     double dt_shift[3] = {x/safe_r*dbetaR_dt,
@@ -1128,6 +2132,11 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     //cartoon terms
     vars.hww += gmunu_boosted[2][2]; // physical metric for now
 
+    // super quick flat background
+    // vars.h[0][0] = 1;
+    // vars.h[1][1] = 1;
+    // vars.hww = 1;
+
 
 
 
@@ -1251,11 +2260,13 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     // unit time normals
     double nU[4] = {0., 0., 0., 0.};
     double nL[4] = {0., 0., 0., 0.};
+    // make n_\mu
     nL[3] = -boost_lapse;
+    // make n^\mu
+    nU[3] = 1./boost_lapse;
     nU[0] = -boosted_beta_U[0]/boost_lapse;
     nU[1] = -boosted_beta_U[1]/boost_lapse;
     nU[2] = -boosted_beta_U[2]/boost_lapse;
-    nU[3] = 1./boost_lapse;
 
     // spatial projection (with respect to boost/tilde)
     for (int m=0; m<4; m++){
@@ -1269,9 +2280,9 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
 
     // re-make leccy fields in boosted frame
     for (int m=0; m<4; m++){
-      vars.Ex += - nU[m] * faraday_boosted[m][0];
-      vars.Ey += - nU[m] * faraday_boosted[m][1];
-      vars.Ez += - nU[m] * faraday_boosted[m][2];
+      vars.Ex += -nU[m] * faraday_boosted[m][0];
+      vars.Ey += -nU[m] * faraday_boosted[m][1];
+      vars.Ez += -nU[m] * faraday_boosted[m][2];
     }
 
     //  cheat method allowed bcos i checked thet other y and x components vanish
@@ -1294,9 +2305,9 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     double Kij_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
     // this is NOT the conformal A, its simply (K_ij-K gamma_ij/3)
     // becuase i believe that Fabrizios trK is automatically zero
-    Kij_polar[0][0] = (AaaUL - inputK/3.)*gamma_polar[0][0];
-    Kij_polar[1][1] = (-0.5*AaaUL- inputK/3.)*gamma_polar[1][1];
-    Kij_polar[2][2] = (-0.5*AaaUL- inputK/3.)*gamma_polar[2][2];
+    Kij_polar[0][0] = (AaaUL + inputK/3.)*gamma_polar[0][0];
+    Kij_polar[1][1] = (-0.5*AaaUL + inputK/3.)*gamma_polar[1][1];
+    Kij_polar[2][2] = (-0.5*AaaUL + inputK/3.)*gamma_polar[2][2];
 
     // could be useful for debugging
     double Kij_rest_frame[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
@@ -1357,6 +2368,8 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}},
       {{0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}, {0., 0., 0., 0.}}
     };
+
+    // polar coord derivs of cart metric
     double dr_4metric[4][4] = {{0., 0., 0., 0.},
                                {0., 0., 0., 0.},
                                {0., 0., 0., 0.},
@@ -1369,6 +2382,8 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
                                {0., 0., 0., 0.},
                                {0., 0., 0., 0.},
                                {0., 0., 0., 0.}};
+
+    // time deriv of cartesian metric
     double dt_4metric[4][4] = {{0., 0., 0., 0.},
                                {0., 0., 0., 0.},
                                {0., 0., 0., 0.},
@@ -1380,11 +2395,18 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     for (int j=0; j<3; j++){
         dt_4metric[i][j] = LieBeta_gamma_cart[i][j] - 2.*alpha*Kij_rest_frame[i][j];
     }}
-    // tt component
-    dt_4metric[3][3] = -2.*alpha*dalpha_dt
-                             + betaR*betaR*d_gamma_rr_dt
-                             + 2.*gamma_polar[0][0]*betaR*dbetaR_dr;
+
     // CRUCIAL TO ENSURE THE SPATIAL PART OF dt_4metric is already calculated
+
+    // tt component, gtt = beta^2-alpha^2
+    dt_4metric[3][3] = -2.*alpha*dalpha_dt;
+    for (int i=0; i<3; i++){
+    for (int j=0; j<3; j++){
+        dt_4metric[3][3] += beta_U[i]*beta_U[j]*dt_4metric[i][j]
+                          + 2. * gamma[i][j] * beta_U[i] * dt_shift[j];
+    }}
+
+    // shift term calcualted
     for (int i=0; i<3; i++){
     for (int j=0; j<3; j++){
         dt_4metric[3][j] += gamma_polar[i][j] * dt_shift[i] + beta_U[i]*dt_4metric[i][j];
@@ -1482,7 +2504,7 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
         d_4metric[2][m][n] = dr_dz * dr_4metric[m][n]
                            + dth_dz * dth_4metric[m][n]
                            + dph_dz * dph_4metric[m][n];
-        d_4metric[3][m][n] = 0. * dt_4metric[m][n];
+        d_4metric[3][m][n] = dt_4metric[m][n];
     }}
 
     ////////////////////////////////////////
@@ -1515,44 +2537,102 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
                                         * d_4metric_boosted[t][m][n];
     }}}}}
 
+
+    ////////////////////////
+    // Derivs of normal vectors
+    ///////////////////////
+
+
+    // calcualte deriv of boosted lapse
+    double d_lapse_tilde[4] = {0.,0.,0.,0.};
+    for (int i=0; i<4; i++){
+      d_lapse_tilde[i] = 0.5 * pow(boost_lapse,3)
+                             * d_inv_4metric_boosted[i][3][3];
+    }
+
+
     // calculate the boosted frame shift derivs (quite non trivial)
-    double dibj_boosted[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    double d_beta_boosted[4][4] = {{0., 0., 0., 0.},
+                                   {0., 0., 0., 0.},
+                                   {0., 0., 0., 0.},
+                                   {0., 0., 0., 0.}};
     // d_x beta^x  (all boosted)
-    for (int i=0; i<3; i++){
+    // CAREFUL MIXED DIMENSIONS IN LOOP!!
+    for (int i=0; i<4; i++){
     for (int j=0; j<3; j++){
-        dibj_boosted[i][j] = boost_lapse * boost_lapse *(
-                             d_inv_4metric_boosted[i][3][j] // d_i g^{tj}
-                             + boosted_beta_U[j] *
-                             d_inv_4metric_boosted[i][3][3] // d_i g^{tt}
-                                                      );
+        d_beta_boosted[i][j] = boost_lapse * boost_lapse *(
+                               d_inv_4metric_boosted[i][3][j] // d_i g^{tj}
+                               + boosted_beta_U[j] *
+                               d_inv_4metric_boosted[i][3][3]); // d_i g^{tt}
     }}
 
-    // feed this into dt_tilde_gamma_boost, both gamma and t are LAB frame
-    // also calculate the tildebeta dot tildepartial tildegamma of Lie deriv
-    for (int i=0; i<3; i++){
-    for (int j=0; j<3; j++){
-      dt_tilde_gamma_boost[i][j] = d_4metric_boosted[3][i][j];
-      L_b_gamma_boost[i][j] =  boosted_beta_U[0] * d_4metric_boosted[0][i][j];
-      L_b_gamma_boost[i][j] += boosted_beta_U[1] * d_4metric_boosted[1][i][j];
+    // calculate the boosted frame normal (quite non trivial)
+    double d_nU_tilde[4][4] =     {{0., 0., 0., 0.},
+                                   {0., 0., 0., 0.},
+                                   {0., 0., 0., 0.},
+                                   {0., 0., 0., 0.}};
+
+    // CAREFUL again, mixed loop dimensions
+    for  (int i=0; i<4; i++){
+      // time component of nU , 3
+      d_nU_tilde[i][3] = -pow(boost_lapse,-2)*d_lapse_tilde[i];
+
+      // spatial components of nU, 0,1,2
+      for (int j=0; j<3; j++){
+        d_nU_tilde[i][j] = pow(boost_lapse,-2) * (
+                              boosted_beta_U[j]*d_lapse_tilde[i]
+                              -boost_lapse*d_beta_boosted[i][j]);
     }}
 
-    // finish Lie deriv
-    for (int i=0; i<3; i++){
-    for (int j=0; j<3; j++){
-    for (int k=0; k<3; k++){
-      L_b_gamma_boost[i][j] += gmunu_boosted[k][j] * dibj_boosted[i][k];
-      L_b_gamma_boost[i][j] += gmunu_boosted[i][k] * dibj_boosted[j][k];
-    }}}
+    /////////////////////////
+    // Create Kij boosted
+    /////////////////////////
 
-    // Finally Kij in LAB frame
-    double tilde_Kij[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-    for (int i=0; i<3; i++){
-    for (int j=0; j<3; j++){
-      tilde_Kij[i][j] = -(dt_tilde_gamma_boost[i][j] - L_b_gamma_boost[i][j])
-                         /(2.*boost_lapse);
+
+    double Lie_n_gamma_tilde[4][4] = {{0., 0., 0., 0.},
+                                      {0., 0., 0., 0.},
+                                      {0., 0., 0., 0.},
+                                      {0., 0., 0., 0.}};
+
+    for (int i=0; i<4; i++){
+      for (int j=0; j<4; j++){
+        for (int k=0; k<4; k++){
+          Lie_n_gamma_tilde[i][j] += gmunu_boosted[i][k] * d_nU_tilde[j][k]
+                                  + gmunu_boosted[k][j] * d_nU_tilde[i][k]
+                                  + nU[k] * d_4metric_boosted[k][i][j];
+          // the terms from Lie_n n_nu n_mu
+          Lie_n_gamma_tilde[i][j] += nL[i]*nL[k] * d_nU_tilde[j][k]
+                                   + nL[k]*nL[j] * d_nU_tilde[i][k];
+        }
+      }
+      // unique tt part from .. d_i (n_mu n_nu) ..
+      Lie_n_gamma_tilde[3][3] += 2. * boost_lapse * nU[i] * d_lapse_tilde[i];
+    }
+
+    // projector to sigma t, perp^i_j
+    double projector[4][4] = {{0., 0., 0., 0.},
+                         {0., 0., 0., 0.},
+                         {0., 0., 0., 0.},
+                         {0., 0., 0., 0.}};
+    for (int i=0; i<4; i++){
+    for (int j=0; j<4; j++){
+        projector[i][j] = I4[i][j] + nU[i]*nL[j];
     }}
 
-    // temporary storage of K_ij in A_ij
+    // tilde_Kij
+    double tilde_Kij[4][4] = {{0., 0., 0., 0.},
+                              {0., 0., 0., 0.},
+                              {0., 0., 0., 0.},
+                              {0., 0., 0., 0.}};
+    for (int i=0; i<4; i++){
+    for (int j=0; j<4; j++){
+    for (int ii=0; ii<4; ii++){
+    for (int jj=0; jj<4; jj++){
+        tilde_Kij[i][j] += -0.5 * projector[ii][i] * projector[jj][j]
+                           * Lie_n_gamma_tilde[ii][jj];
+    }}}}
+
+    // temporary storage of K_ij in A_ij - fixed later
     FOR2(i,j)
     {
         vars.A[i][j] += tilde_Kij[i][j];
@@ -1561,110 +2641,717 @@ template <class data_t> void EMSBH_read::compute_boost(Cell<data_t> current_cell
     vars.Aww += tilde_Kij[2][2];
 
 
-    //////////////////////////////////////////
-    // old stuff left incase needed again
-    //////////////////////////////////////////
+
+    ///////////////////////
+    // final var storage
+    ///////////////////////
+
+    current_cell.store_vars(vars);
+}
 
 
-    // /////////////////////////////////////
-    // // shift derivs - rest frame
-    // double di_betaj[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-    //
-    // // one way of calculating beta deriv
-    // // for (int j=0; j<3; j++){
-    // //   di_betaj[0][j] += dr_dx * (dbetaR_dr / safe_r - betaR / pow(safe_r,2)) * cart_coords[j];
-    // //   di_betaj[1][j] += dr_dy * (dbetaR_dr / safe_r - betaR / pow(safe_r,2)) * cart_coords[j];
-    // //   di_betaj[2][j] += dr_dz * (dbetaR_dr / safe_r - betaR / pow(safe_r,2)) * cart_coords[j];
-    // //   // diagonal term
-    // //   di_betaj[j][j] += betaR / safe_r;
-    // // }
-    //
-    // // alternative way of calculating the beta deriv
-    // for (int i=0; i<3; i++){
-    // for (int j=0; j<3; j++){
-    //   di_betaj[i][j] += betaR * kroneka_delta[i][j] / safe_r;
-    //   di_betaj[i][j] += cart_coords[i] * cart_coords[j]  *
-    //                           (dbetaR_dr - betaR/safe_r) *
-    //                            pow(safe_r,-2);
-    // }}
 
+
+
+///////////////////////////////////////
+
+//     BOOSTED
+
+//     INITIAL
+
+//      DATA 3
+
+///////////////////////////////////////
+
+// algebraic reissner nordstrom precollapsed lapse isotropic
+
+// Compute the value of first bh the initial vars on the grid
+template <class data_t> void EMSBH_read::compute_boost3(Cell<data_t> current_cell
+                                                          , double a_sign) const
+{
+    CCZ4CartoonVars::VarsWithGauge<data_t> vars;
+    // Load variables (should be set to zero)
+    current_cell.load_vars(vars);
+    // VarsTools::assign(vars, 0.); // Set only the non-zero components below
+    Coordinates<data_t> coords(current_cell, m_dx, m_params_EMSBH.star_centre);
+
+
+    // binary parameters
+    bool binary = m_params_EMSBH.binary;
+    double separation = m_params_EMSBH.separation;
+    double rapidity = m_params_EMSBH.rapidity;
+
+    // matter conversion from unit conventions
+    const double root_kappa = 1./sqrt(8.*M_PI);
+
+    // the kroneka delta
+    const double kroneka_delta[3][3] = {{1., 0., 0.}, {0., 1., 0.}, {0., 0., 1.}};
+
+
+    // protected single letter names
+    // a, b, r, x, y, z, X
+
+
+
+    ////////////////////////////
+    // 4 - METRIC
+    ////////////////////////////
+
+    // 4-metrics for boosting numerically
+    double gmunu[4][4] = {
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.}
+    };
+    double gmunu_boosted[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+    double gmunu_inv[4][4] = {
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.}
+    };
+    double gmunu_inv_boosted[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+
+    // remember ADM decomp
+    // g_tt = -lapse^2 + shift^2
+    // g_ti = shift_i
+    // g_ij = gamma_ij
+
+
+
+
+    ////////////////////////////
+    // 4 - BOOST MATRICES
+    ////////////////////////////
+
+    // boost matrix
+    const double c_ = cosh(rapidity);
+    // use sign = 1 to denote positive velocity boost
+    // aka BH moves towards the right
+    const double s_ = sinh(a_sign * rapidity);
+
+    // Boost matrix
+    // remember time index is 3.
+    // For co-tensor components
+    // from rest frame to lab frame
+    const double Lambda[4][4] = {
+                {c_, 0., 0., -s_},
+                {0., 1., 0., 0.},
+                {0., 0., 1., 0.},
+                {-s_, 0., 0., c_}
+    };
+    // inverse boosts upsairs indices
+    const double Lambda_inv[4][4] = {
+                {c_, 0., 0., s_},
+                {0., 1., 0., 0.},
+                {0., 0., 1., 0.},
+                {s_, 0., 0., c_}
+    };
+
+    // identity matrix for shits and giggles
+    const double I4[4][4] = {
+                {1., 0., 0., 0.},
+                {0., 1., 0., 0.},
+                {0., 0., 1., 0.},
+                {0., 0., 0., 1.}
+    };
+
+
+
+    ////////////////////////////
+    // COORDINATES
+    ////////////////////////////
+
+
+    // coord objects
+    // sign = 1 corresponds to bh positioned to the left of the binary
+    double x = c_ * (coords.x + a_sign * 0.5 * separation);
+    double z = 0.; // coords.z;
+    double y = coords.y;
+    double cart_coords[3] = {x, y, z};
+
+    // radii and safe (divisible) radii
+    double r = sqrt(x * x + y * y + z * z);
+    double safe_r = sqrt(x * x + y * y + z * z + 10e-20);
+    double rho = sqrt(x * x + y * y);
+    double safe_rho = sqrt(x * x + y * y + 10e-20);
+
+    // trig functions
+    double sintheta = rho/safe_r;
+    double costheta = z/safe_r;
+    double sinphi = y/safe_rho;
+    double cosphi = x/safe_rho;
+
+    double cosphi2 = cosphi*cosphi;
+    double costheta2 = costheta*costheta;
+    double sinphi2 = sinphi*sinphi;
+    double sintheta2 = sintheta*sintheta;
+
+    // jacobeans
+    double dx_dr = cosphi*sintheta;
+    double dy_dr = sinphi*sintheta;
+    double dz_dr = costheta;
+    double dr_dx = (x / safe_r);
+    double dr_dy = (y / safe_r);
+    double dr_dz = (z / safe_r);
+    double dth_dx = x*z/(safe_r*safe_r*safe_rho);
+    double dth_dy = y*z/(safe_r*safe_r*safe_rho);
+    double dth_dz = -rho/(safe_r*safe_r);
+    double dph_dx = -y/(safe_rho*safe_rho);
+    double dph_dy = x/(safe_rho*safe_rho);
+    double dph_dz = 0.;
+
+    // partial cartesian coords (i) by partial polar coords (j)
+    // dxc_dxp[i][j]
+    // i = {x,y,z}
+    // j = {r,th,ph}
+    double dxc_dxp[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    dxc_dxp[0][0] = dx_dr;
+    dxc_dxp[1][0] = dy_dr;
+    dxc_dxp[2][0] = dz_dr;
+    dxc_dxp[0][1] = r * cosphi * costheta;
+    dxc_dxp[1][1] = r * sinphi * costheta;
+    dxc_dxp[2][1] = -r * sintheta;
+    dxc_dxp[0][2] = -r * sinphi * sintheta;
+    dxc_dxp[1][2] = r * cosphi * sintheta;
+    dxc_dxp[2][2] = 0.; // dz/dphi=0
+
+    // partial polar coords (i) by partial cartesian coords (j)
+    // dxp_dxc[i][j]
+    // i = {r,th,ph}
+    // j = {x,y,z}
+    double dxp_dxc[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    dxp_dxc[0][0] = dr_dx;
+    dxp_dxc[0][1] = dr_dy;
+    dxp_dxc[0][2] = dr_dz;
+    dxp_dxc[1][0] = x * z / (safe_r * safe_r * safe_rho);
+    dxp_dxc[1][1] = y * z / (safe_r * safe_r * safe_rho);
+    dxp_dxc[1][2] = - rho / (safe_r * safe_r);
+    dxp_dxc[2][0] = - y / (safe_rho * safe_rho);
+    dxp_dxc[2][1] = x / (safe_rho * safe_rho);
+    dxp_dxc[2][2] = 0.; // dphi/dz=0
+
+
+
+    ////////////////////////////
+    // LOAD RADIAL SOLUTION
+    ////////////////////////////
+    double M = 1.;
+    double Q = 0.7 * M;
+    double psi = 1. + (M*M - Q*Q)/(4.*safe_r*safe_r) + M/safe_r;
+    double dpsi = -(M*M - Q*Q + 2.*M*r)/(2.*pow(safe_r,3));
+
+    // pre-collapsed lapse
+    double pcl_om = 1./psi;
+    double pcl_dom = -dpsi/(psi*psi);
+
+    // normal isotropic lapse
+    double om = (-M*M + Q*Q + 4.*r*r)/(M*M - Q*Q + 4.*M*r + 4.*r*r);
+    double dom = 4.*(M*M*M - M*Q*Q + 4.*M*M*r - 4.*Q*Q*r + 4.*M*r*r)
+            /pow(M*M - Q*Q + 4.*M*r + 4.*r*r,2);
+
+    // boosted stuff
+    double sqrt_cyso = sqrt(c_*c_*psi*psi - s_*s_*om*om);
+    double ccyy_ssoo = c_*c_*psi*psi - s_*s_*om*om;
+    double beta = -c_*s_*(psi*psi-om*om)/ccyy_ssoo;
+    double alpha = psi*om/sqrt_cyso;
+    double chi_boost = pow(psi*psi*sqrt_cyso,-1.5);
+
+
+
+
+    ///////////////////////////////////////
+    // STORE BOOSTED SHIFT AND GAMMA_IJ
+    ///////////////////////////////////////
+
+    // lapse likely not used and later over-written
+    // vars.lapse += om;
+    vars.lapse += sqrt(chi_boost); // pre-collapsed lapse
+    vars.shift[0] += beta;
+    vars.shift[1] += 0.;
+
+    // don't loop z direction
+    // store physical metric for now
+
+    // xx
+    vars.h[0][0] += ccyy_ssoo;
+    // yy
+    vars.h[1][1] += psi*psi; // physical metric for now
+
+    //cartoon terms
+    vars.hww += psi*psi; // physical metric for now
+
+    // sqrt spatial metric det
+    double root_gamma = psi*psi*sqrt_cyso;
+
+
+
+    ////////////////////////
+    // ELECTROMAGNETISM
+    ////////////////////////
+
+    // rest frame
+    double F_tr = -Q*om/(sqrt(8.*M_PI)*psi*safe_r*safe_r);
+
+    // only included non-zero temrs in boost, this is not generic!!
+    // double Ex = dr_dx * F_tr / (-alpha);
+    // double Ey = dr_dy * F_tr / (-alpha);
+    // double Ez = dr_dz * F_tr / (-alpha);// shoudl be 0
+
+    // //  non boosted test
+    // vars.Ex += Ex;
+    // vars.Ey += Ey;
+    // vars.Ez += Ez;
+    // vars.Bx += 0.;
+    // vars.By += 0.;
+    // vars.Bz += 0.;
+
+    // numerical F boost
+    double faraday[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+    //tx, ty, tz
+    faraday[3][0] = F_tr * dr_dx;
+    faraday[3][1] = F_tr * dr_dy;
+    faraday[3][2] = F_tr * dr_dz;
+    faraday[0][3] = -F_tr * dr_dx;
+    faraday[1][3] = -F_tr * dr_dy;
+    faraday[2][3] = -F_tr * dr_dz;
+
+    double faraday_boosted[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+
+    for (int m=0; m<4; m++){
+    for (int n=0; n<4; n++){
+    for (int r=0; r<4; r++){
+    for (int s=0; s<4; s++){
+      faraday_boosted[m][n] +=        Lambda[m][r]
+                                    * Lambda[n][s]
+                                    * faraday[r][s];
+    }}}}
+
+    // unit time normals
+    double nU[4] = {0., 0., 0., 0.};
+    double nL[4] = {0., 0., 0., 0.};
+    nL[3] = -alpha;
+    nU[0] = -beta/alpha;
+    nU[1] = 0.;
+    nU[2] = 0.; // should = 0
+    nU[3] = 1./alpha;
+
+    // re-make leccy fields in boosted frame
+    for (int m=0; m<4; m++){
+      vars.Ex += -nU[m] * faraday_boosted[m][0];
+      vars.Ey += -nU[m] * faraday_boosted[m][1];
+      vars.Ez += -nU[m] * faraday_boosted[m][2];
+    }
+
+    // B^z = F_xy / root_gamma
+    // B_z = F_xy / root_gamma / gamma_zz
+    vars.Bz += faraday_boosted[0][1] / root_gamma / psi / psi;
+
+
+
+
+
+
+    ////////////////////////////////////
+    // LOAD EXTRINSIC CURVATURE K_IJ
+    ////////////////////////////////////
+
+    double tilde_Kij[3][3] = {{0., 0., 0.},
+                              {0., 0., 0.},
+                              {0., 0., 0.}};
+    double Kxx_top = c_*c_*psi*om*dpsi
+                     -2.*c_*c_*psi*psi*dom
+                     +s_*s_*om*om*dom;
+    Kxx_top *= -x*s_*alpha;
+
+    tilde_Kij[0][0] = Kxx_top/(safe_r*psi*psi*om);
+    tilde_Kij[0][1] = alpha*y*c_*s_*(dom*psi-dpsi*om)/(safe_r*psi*om);
+    tilde_Kij[1][0] = tilde_Kij[0][1];
+    tilde_Kij[1][1] = alpha*x*s_*dpsi/(safe_r*psi);
+    tilde_Kij[2][2] = tilde_Kij[1][1];
+
+
+    // temporary storage of K_ij in A_ij - fixed later
+    FOR2(i,j)
+    {
+        vars.A[i][j] += tilde_Kij[i][j];
+    }
+    //cartoon terms
+    vars.Aww += tilde_Kij[2][2];
+
+
+
+    ///////////////////////
+    // final var storage
+    ///////////////////////
+
+    current_cell.store_vars(vars);
+}
+
+
+///////////////////////////////////////
+
+//     BOOSTED
+
+//     INITIAL
+
+//      DATA 4
+
+///////////////////////////////////////
+
+
+
+// Compute the value of first bh the initial vars on the grid
+template <class data_t> void EMSBH_read::compute_boost4(Cell<data_t> current_cell
+                                                          , double a_sign) const
+{
+    CCZ4CartoonVars::VarsWithGauge<data_t> vars;
+    // Load variables (should be set to zero)
+    current_cell.load_vars(vars);
+    // VarsTools::assign(vars, 0.); // Set only the non-zero components below
+    Coordinates<data_t> coords(current_cell, m_dx, m_params_EMSBH.star_centre);
+
+
+    // binary parameters
+    bool binary = m_params_EMSBH.binary;
+    double separation = m_params_EMSBH.separation;
+    double rapidity = m_params_EMSBH.rapidity;
+
+    // matter conversion from unit conventions
+    const double root_kappa = 1./sqrt(8.*M_PI);
+
+    // the kroneka delta
+    const double kroneka_delta[3][3] = {{1., 0., 0.}, {0., 1., 0.}, {0., 0., 1.}};
+
+
+    // protected single letter names
+    // a, b, r, x, y, z, X
+
+
+
+    ////////////////////////////
+    // 4 - METRIC
+    ////////////////////////////
+
+    // 4-metrics for boosting numerically
+    double gmunu[4][4] = {
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.}
+    };
+    // remember t is lat index
+    double eta[4][4] = {
+                 {1., 0., 0., 0.},
+                 {0., 1., 0., 0.},
+                 {0., 0., 1., 0.},
+                 {0., 0., 0., -1.}
+    };
+    double gmunu_boosted[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+    double gmunu_inv[4][4] = {
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.},
+                 {0., 0., 0., 0.}
+    };
+    double gmunu_inv_boosted[4][4] = {
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.},
+                {0., 0., 0., 0.}
+    };
+
+    // remember ADM decomp
+    // g_tt = -lapse^2 + shift^2
+    // g_ti = shift_i
+    // g_ij = gamma_ij
+
+
+
+
+    ////////////////////////////
+    // 4 - BOOST MATRICES
+    ////////////////////////////
+
+    // boost matrix
+    const double c_ = cosh(rapidity);
+    // use sign = 1 to denote positive velocity boost
+    // aka BH moves towards the right
+    const double s_ = sinh(a_sign * rapidity);
+
+    // Boost matrix
+    // remember time index is 3.
+    // For co-tensor components
+    // from rest frame to lab frame
+    const double Lambda[4][4] = {
+                {c_, 0., 0., -s_},
+                {0., 1., 0., 0.},
+                {0., 0., 1., 0.},
+                {-s_, 0., 0., c_}
+    };
+    // inverse boosts upsairs indices
+    const double Lambda_inv[4][4] = {
+                {c_, 0., 0., s_},
+                {0., 1., 0., 0.},
+                {0., 0., 1., 0.},
+                {s_, 0., 0., c_}
+    };
+
+    // identity matrix for shits and giggles
+    const double I4[4][4] = {
+                {1., 0., 0., 0.},
+                {0., 1., 0., 0.},
+                {0., 0., 1., 0.},
+                {0., 0., 0., 1.}
+    };
+
+
+
+    ////////////////////////////
+    // COORDINATES
+    ////////////////////////////
+
+
+    // coord objects
+    // sign = 1 corresponds to bh positioned to the left of the binary
+    double x = c_ * (coords.x + a_sign * 0.5 * separation);
+    double z = 0.; // coords.z;
+    double y = coords.y;
+    double cart_coords[3] = {x, y, z};
+
+    // radii and safe (divisible) radii
+    double r = sqrt(x * x + y * y + z * z);
+    double safe_r = sqrt(x * x + y * y + z * z + 10e-20);
+    double rho = sqrt(x * x + y * y);
+    double safe_rho = sqrt(x * x + y * y + 10e-20);
+
+    // trig functions
+    double sintheta = rho/safe_r;
+    double costheta = z/safe_r;
+    double sinphi = y/safe_rho;
+    double cosphi = x/safe_rho;
+
+    double cosphi2 = cosphi*cosphi;
+    double costheta2 = costheta*costheta;
+    double sinphi2 = sinphi*sinphi;
+    double sintheta2 = sintheta*sintheta;
+
+    // jacobeans
+    double dx_dr = cosphi*sintheta;
+    double dy_dr = sinphi*sintheta;
+    double dz_dr = costheta;
+    double dr_dx = (x / safe_r);
+    double dr_dy = (y / safe_r);
+    double dr_dz = (z / safe_r);
+    double dth_dx = x*z/(safe_r*safe_r*safe_rho);
+    double dth_dy = y*z/(safe_r*safe_r*safe_rho);
+    double dth_dz = -rho/(safe_r*safe_r);
+    double dph_dx = -y/(safe_rho*safe_rho);
+    double dph_dy = x/(safe_rho*safe_rho);
+    double dph_dz = 0.;
+
+    // partial cartesian coords (i) by partial polar coords (j)
+    // dxc_dxp[i][j]
+    // i = {x,y,z}
+    // j = {r,th,ph}
+    double dxc_dxp[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    dxc_dxp[0][0] = dx_dr;
+    dxc_dxp[1][0] = dy_dr;
+    dxc_dxp[2][0] = dz_dr;
+    dxc_dxp[0][1] = r * cosphi * costheta;
+    dxc_dxp[1][1] = r * sinphi * costheta;
+    dxc_dxp[2][1] = -r * sintheta;
+    dxc_dxp[0][2] = -r * sinphi * sintheta;
+    dxc_dxp[1][2] = r * cosphi * sintheta;
+    dxc_dxp[2][2] = 0.; // dz/dphi=0
+
+    // partial polar coords (i) by partial cartesian coords (j)
+    // dxp_dxc[i][j]
+    // i = {r,th,ph}
+    // j = {x,y,z}
+    double dxp_dxc[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    dxp_dxc[0][0] = dr_dx;
+    dxp_dxc[0][1] = dr_dy;
+    dxp_dxc[0][2] = dr_dz;
+    dxp_dxc[1][0] = x * z / (safe_r * safe_r * safe_rho);
+    dxp_dxc[1][1] = y * z / (safe_r * safe_r * safe_rho);
+    dxp_dxc[1][2] = - rho / (safe_r * safe_r);
+    dxp_dxc[2][0] = - y / (safe_rho * safe_rho);
+    dxp_dxc[2][1] = x / (safe_rho * safe_rho);
+    dxp_dxc[2][2] = 0.; // dphi/dz=0
+
+
+
+    ////////////////////////////
+    // LOAD KERR-SCHILD SOLUTION
+    ////////////////////////////
+    double M = 1.;
+    double Q = 0.7 * M;
+    double H = 2.*M/safe_r;
+    double dH = -2.*M/(safe_r*safe_r);
+    double kL[4] = {x/safe_r,y/safe_r,z/safe_r,1};
+    double kU[4] = {x/safe_r,y/safe_r,z/safe_r,-1};
+
+    for (int i = 0; i < 4; i++) {
+      for (int j = 0; j < 4; j++) {
+            gmunu[i][j] = eta[i][j] + H*kL[i]*kL[j];
+            gmunu_inv[i][j] = eta[i][j] - H*kU[i]*kU[j];
+    }}
+
+
+
+
+
+    ///////////////////////////////////////
+    // STORE BOOSTED SHIFT AND GAMMA_IJ
+    ///////////////////////////////////////
+
+    // don't loop z direction
+    // store physical metric for now
+
+    // metric
+    vars.h[0][0] += gmunu[0][0];
+    vars.h[1][0] += gmunu[1][0];
+    vars.h[0][1] += gmunu[0][1];
+    vars.h[1][1] += gmunu[1][1];
+
+    //cartoon terms
+    vars.hww += gmunu[2][2]; // physical metric for now
+
+    vars.lapse += 1./sqrt(-gmunu_inv[3][3]);
+    vars.shift[0] += -gmunu_inv[0][3]/gmunu_inv[3][3];
+    vars.shift[1] += -gmunu_inv[1][3]/gmunu_inv[3][3];
+
+
+
+    ////////////////////////
+    // // ELECTROMAGNETISM
+    // ////////////////////////
     //
+    // // double E_r = -Q/(sqrt(8.*M_PI)*psi*safe_r*safe_r);
     //
+    // double F_tr = -Q/(sqrt(8.*M_PI)*psi*psi*safe_r*safe_r);
     //
+    // // only included non-zero temrs in boost, this is not generic!!
+    // // double Ex = dr_dx * F_tr / (-alpha);
+    // // double Ey = dr_dy * F_tr / (-alpha);
+    // // double Ez = dr_dz * F_tr / (-alpha);// shoudl be 0
     //
+    // // //  non boosted test
+    // // vars.Ex += Ex;
+    // // vars.Ey += Ey;
+    // // vars.Ez += Ez;
+    // // vars.Bx += 0.;
+    // // vars.By += 0.;
+    // // vars.Bz += 0.;
     //
-    // ///////////////////////////
-    // // Alternate Kij calc stuff
-    // ///////////////////////////
-    // double LieBeta_gamma_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-    // double LieBeta_gamma_cart[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-    // double dt_gamma_again[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
+    // // numerical F boost
+    // double faraday[4][4] = {
+    //             {0., 0., 0., 0.},
+    //             {0., 0., 0., 0.},
+    //             {0., 0., 0., 0.},
+    //             {0., 0., 0., 0.}
+    // };
+    // //tx, ty, tz
+    // faraday[3][0] = F_tr * dr_dx;
+    // faraday[3][1] = F_tr * dr_dy;
+    // faraday[3][2] = F_tr * dr_dz;
+    // faraday[0][3] = -F_tr * dr_dx;
+    // faraday[1][3] = -F_tr * dr_dy;
+    // faraday[2][3] = -F_tr * dr_dz;
     //
-    // // total lie derivative
-    // LieBeta_gamma_polar[0][0] = (X*betaR*dadr - 2.*a*betaR*dXdr + 2.*a*X*dbetaR_dr)/X3;
-    // LieBeta_gamma_polar[1][1] = r*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
-    // LieBeta_gamma_polar[2][2] = r*sintheta2*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
+    // double faraday_boosted[4][4] = {
+    //             {0., 0., 0., 0.},
+    //             {0., 0., 0., 0.},
+    //             {0., 0., 0., 0.},
+    //             {0., 0., 0., 0.}
+    // };
     //
-    // // the beta deriv of metric (part 1) ONLY for debug
-    // // LieBeta_gamma_polar[0][0] = (X*betaR*dadr - 2.*a*betaR*dXdr)/X3;
-    // // LieBeta_gamma_polar[1][1] = r*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
-    // // LieBeta_gamma_polar[2][2] = r*betaR*(r*X*dbdr + 2.*b*(X-r*dXdr))/X3;
-    //
-    // // the deriv of beta term (part 2) ONLY for debug
-    // // LieBeta_gamma_polar[0][0] = 2.*a*dbetaR_dr/X2;
-    //
-    // for (int i=0; i<3; i++){
-    // for (int j=0; j<3; j++){
-    // for (int m=0; m<3; m++){
-    // for (int n=0; n<3; n++){
-    //    LieBeta_gamma_cart[i][j] += dxp_dxc[n][j] * dxp_dxc[m][i] * LieBeta_gamma_polar[m][n];
+    // for (int m=0; m<4; m++){
+    // for (int n=0; n<4; n++){
+    // for (int r=0; r<4; r++){
+    // for (int s=0; s<4; s++){
+    //   faraday_boosted[m][n] +=        Lambda[m][r]
+    //                                 * Lambda[n][s]
+    //                                 * faraday[r][s];
     // }}}}
     //
-    // for (int i=0; i<3; i++){
-    // for (int j=0; j<3; j++){
-    //   dt_gamma_again[i][j] = LieBeta_gamma_cart[i][j] - 2.*alpha*Kij_rest_frame[i][j];
-    // }}
+    // // unit time normals
+    // double nU[4] = {0., 0., 0., 0.};
+    // double nL[4] = {0., 0., 0., 0.};
+    // nL[3] = -alpha;
+    // nU[0] = -beta/alpha;
+    // nU[1] = 0.;
+    // nU[2] = 0.; // should = 0
+    // nU[3] = 1./alpha;
     //
-    // ///////////////////////////////
-    // // third time trying lucky ??
-    // ///////////////////////////////
-    //
-    // double tilde_Kij[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-    //
-    // // boosted d_i beta^j
-    // double tilde_diBi[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
-    //
-    //
-    // // d_i gamma tilde  =  LL d_i gamma
-    //
-    // for (int i=0; i<3; i++){
-    // for (int j=0; j<3; j++){
-    // for (int r=0; r<3; r++){
-    // for (int s=0; s<3; s++){
-    //   tilde_Kij[i][j] += Lambda[i][r] * Lambda[j][s]
-    //                    * (c_ + boosted_beta_U[0] * s_)
-    //                    * dt_gamma_again[r][s];
-    //   tilde_Kij[i][j] += Lambda[i][r] * Lambda[j][s]
-    //                    * (s_ - boosted_beta_U[0] * c_)
-    //                    * d_4metric[0][r][s];
-    //   tilde_Kij[i][j] += Lambda[i][r] * Lambda[j][s]
-    //                    * (- boosted_beta_U[1])
-    //                    * d_4metric[1][r][s];
-    // }}}}
-    //
-    // for (int i=0; i<3; i++){
-    // for (int j=0; j<3; j++){
-    //   tilde_Kij[i][j] = -1./(2. * boost_lapse) * tilde_Kij[i][j];
-    // }}
-
-
-    // temporary storage in A_ij
-    // FOR2(i,j)
-    // {
-    //     vars.A[i][j] += tilde_Kij[i][j];
+    // // re-make leccy fields in boosted frame
+    // for (int m=0; m<4; m++){
+    //   vars.Ex += -nU[m] * faraday_boosted[m][0];
+    //   vars.Ey += -nU[m] * faraday_boosted[m][1];
+    //   vars.Ez += -nU[m] * faraday_boosted[m][2];
     // }
-    // //cartoon terms
-    // vars.Aww += tilde_Kij[2][2];
+    //
+    // // B^z = F_xy / root_gamma
+    // // B_z = F_xy / root_gamma / gamma_zz
+    // vars.Bz += faraday_boosted[0][1] / root_gamma / psi;
+
+
+
+
+
+
+    ////////////////////////////////////
+    // LOAD EXTRINSIC CURVATURE K_IJ
+    ////////////////////////////////////
+
+    double tilde_Kij[3][3] = {{0., 0., 0.},
+                              {0., 0., 0.},
+                              {0., 0., 0.}};
+
+    double ropf = sqrt(1.+H);
+
+
+    tilde_Kij[0][0] = (2.*r*x*x*dH + H*(2.*r*r - 2*x*x + r*x*x*dH))/(r*r*safe_r*(ropf));
+    tilde_Kij[0][1] = x*y*(2.*r*dH + H*(-2.+r*dH))/(r*r*safe_r*(ropf));
+    tilde_Kij[1][0] = tilde_Kij[0][1];
+    tilde_Kij[1][1] = (2.*r*y*y*dH + H*(2.*r*r-2.*y*y + r*y*y*dH))/(r*r*safe_r*(ropf));;
+    tilde_Kij[2][2] = 2.*H/(safe_r*ropf);
+
+
+    // temporary storage of K_ij in A_ij - fixed later
+    FOR2(i,j)
+    {
+        vars.A[i][j] += tilde_Kij[i][j];
+    }
+    //cartoon terms
+    vars.Aww += tilde_Kij[2][2];
 
 
 

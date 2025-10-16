@@ -46,7 +46,16 @@ class EMSBH_read
     template <class data_t> void compute_single(Cell<data_t> current_cell) const;
 
     //! boost stuff
-    template <class data_t> void compute_boost(Cell<data_t> current_cell, double a_sign) const;
+    // template <class data_t> void compute_boost(Cell<data_t> current_cell, double a_sign) const;
+
+    //! boost stuff
+    template <class data_t> void compute_boost2(Cell<data_t> current_cell, double a_sign) const;
+
+    //! boost stuff
+    template <class data_t> void compute_boost3(Cell<data_t> current_cell, double a_sign) const;
+
+    //! boost stuff
+    template <class data_t> void compute_boost4(Cell<data_t> current_cell, double a_sign) const;
 
 
 
