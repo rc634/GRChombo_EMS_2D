@@ -25,9 +25,9 @@
 #include "TraceARemovalCartoon.hpp"
 
 // gauge
-#include "IntegratedMovingPunctureGauge.hpp"
+// #include "IntegratedMovingPunctureGauge.hpp"
 // #include "MovingPunctureGauge.hpp"
-// #include "ExperimentalGauge.hpp"
+#include "ExperimentalGauge.hpp"
 
 // EMS includes
 #include "EMSBH_read.hpp"
@@ -141,8 +141,9 @@ void EMSBH2DLevel::initialData()
 
     fillAllGhosts();
 
-    // Integrated MPG ONLY! to initialise B^i
-    auto my_gauge_conditions = IntegratedMovingPunctureGauge(m_p.ccz4_params);
+    // Exp/Int gauge ONLY! to initialise B^i
+    // auto my_gauge_conditions = IntegratedMovingPunctureGauge(m_p.ccz4_params);
+    auto my_gauge_conditions = ExperimentalGauge(m_p.ccz4_params);
     BoxLoops::loop(my_gauge_conditions,
                       m_state_new, m_state_new, EXCLUDE_GHOST_CELLS);
 }
@@ -195,11 +196,11 @@ void EMSBH2DLevel::specificEvalRHS(GRLevelData &a_soln,
 
     ////////////////////////////
     // Integrated MPG
-    CCZ4Cartoon<IntegratedMovingPunctureGauge,
-                FourthOrderDerivatives,
-                CouplingFunction>
-    my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
-                                           m_p.m_G_Newton, m_p.formulation);
+    // CCZ4Cartoon<IntegratedMovingPunctureGauge,
+    //             FourthOrderDerivatives,
+    //             CouplingFunction>
+    // my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
+    //                                        m_p.m_G_Newton, m_p.formulation);
 
 
     // //////////////////////////////
@@ -212,11 +213,11 @@ void EMSBH2DLevel::specificEvalRHS(GRLevelData &a_soln,
 
     // //////////////////////////////
     // // XPG
-    // CCZ4Cartoon<ExperimentalGauge,
-    //             FourthOrderDerivatives,
-    //             CouplingFunction>
-    // my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
-    //                                       m_p.m_G_Newton, m_p.formulation);
+    CCZ4Cartoon<ExperimentalGauge,
+                FourthOrderDerivatives,
+                CouplingFunction>
+    my_ccz4_cartoon(m_p.ccz4_params, m_dx, m_p.sigma, coupling_function,
+                                          m_p.m_G_Newton, m_p.formulation);
 
 
     ///////////////////////

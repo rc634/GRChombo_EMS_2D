@@ -33,6 +33,7 @@ class ExperimentalGauge
     {
         Tensor<1, data_t> shift;
         Tensor<1, data_t> Gamma; //!< Conformal connection functions
+        data_t chi;
 
         /// Defines the mapping between members of Vars and Chombo grid
         /// variables (enum in User_Variables)
@@ -43,6 +44,7 @@ class ExperimentalGauge
                 mapping_function, GRInterval<c_shift1, c_shift2>(), shift);
             VarsTools::define_enum_mapping(
                 mapping_function, GRInterval<c_Gamma1, c_Gamma2>(), Gamma);
+            VarsTools::define_enum_mapping( mapping_function, c_chi, chi);
         }
     };
 
@@ -55,7 +57,19 @@ class ExperimentalGauge
     // can be used for initial data or post time step stuff ..
     template <class data_t> void compute(Cell<data_t> current_cell) const
     {
-        // empty for now
+        const auto vars = current_cell.template load_vars<Vars>();
+
+        Tensor<1, data_t> B;
+        Tensor<1, data_t> shift;
+        FOR(i)
+        {
+            shift[i] = vars.chi * vars.shift[i];
+            B[i] = m_params.shift_Gamma_coeff * vars.Gamma[i] -
+                   m_params.eta * shift[i];
+        }
+
+        current_cell.store_vars(B, GRInterval<c_B1, c_B2>());
+        current_cell.store_vars(shift, GRInterval<c_shift1, c_shift2>());
     }
 
     // the gauge evolution equations
@@ -66,16 +80,14 @@ class ExperimentalGauge
                           const diff2_vars_t<Tensor<2, data_t>> &d2,
                           const vars_t<data_t> &advec) const
     {
-        rhs.lapse = m_params.lapse_advec_coeff * advec.lapse -
-                    m_params.lapse_coeff *
-                        pow(vars.lapse, m_params.lapse_power) *
-                        (vars.K - 2 * vars.Theta);
+        rhs.lapse = 1. * advec.lapse
+                     - 1.7 * vars.lapse * (vars.K - 2 * vars.Theta);
         FOR(i)
         {
-            rhs.shift[i] = m_params.shift_advec_coeff * advec.shift[i] +
+            rhs.shift[i] = 1. * advec.shift[i] +
                            m_params.shift_Gamma_coeff * vars.Gamma[i] -
                            m_params.eta * vars.shift[i] - vars.B[i];
-            rhs.B[i] = 0.; // static, stays the same to save initial condition
+            rhs.B[i] = - 0.1 * vars.B[i] ; // static, stays the same to save initial condition
         }
     }
 };
