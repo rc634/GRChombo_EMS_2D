@@ -63,7 +63,8 @@ class ExperimentalGauge
         Tensor<1, data_t> shift;
         FOR(i)
         {
-            shift[i] = vars.chi * vars.shift[i];
+            //shift[i] = vars.chi * vars.shift[i];
+            shift[i] = vars.shift[i];
             B[i] = m_params.shift_Gamma_coeff * vars.Gamma[i] -
                    m_params.eta * shift[i];
         }
