@@ -1817,6 +1817,21 @@ template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cel
     double rho = sqrt(x * x + y * y);
     double safe_rho = sqrt(x * x + y * y + 10e-20);
 
+    // r_join, radius we join the tail solution into the main solution
+    double r_join = m_1d_sol.r_join;
+    bool in_asymptotic_region = false;
+    double aw1 = 1.0, aw2 = 0.; // asymptotic weight functions
+    double asw = 600.; // asymptotic transfer width
+    if (r>=r_join){
+        in_asymptotic_region = true;
+        // aw1 = (cos((r-r_join)*M_PI/asw)+1.)/2.;
+        // aw1 = 1.-(r-r_join)/asw;
+        // if (r>r_join+asw) {
+        //   aw1 = 0.;
+        // }
+        // aw2 = 1.-aw1;
+    }
+
     // trig functions
     double sintheta = rho/safe_r;
     double costheta = z/safe_r;
@@ -1889,19 +1904,41 @@ template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cel
     double dbdr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.b,r);
     double dalpha_dr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.lapse,r);
     double dbetaR_dr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.shift,r);
-    //
+    // asymptotics
+    if (in_asymptotic_region){
+        X = X*aw1 + aw2*sqrt(1. - 2. * 10./r);
+        dXdr = dXdr*aw1 + aw2*(0.5/X)*(2. * 10. / r / r);
+        a = a*aw1 + aw2*1.;
+        b = b*aw1 + aw2*1.;
+        alpha = alpha*aw1 + aw2*sqrt(1 - 2. * 10./r);
+        betaR = betaR*aw1 + aw2*0.;
+        dadr = dadr*aw1 + aw2*0.;
+        dbdr = dbdr*aw1 + aw2*0.;
+        dalpha_dr = dalpha_dr*aw1 + aw2*0.;
+        dbetaR_dr = dbetaR_dr*aw1 + aw2*0.;
+    }
+
+    // powers
     double X2 = X*X;
     double X3 = X2*X;
     double s2 = s_*s_;
     double c2 = c_*c_;
     double a2 = alpha*alpha;
+
     // some time derivs - from gauge conditions of Fabrizio
     double dalpha_dt = -2.*alpha*m_1d_sol.get_value_interp_o4(m_1d_sol.K,r);
     double dbetaR_dt = m_1d_sol.get_value_interp_o4(m_1d_sol.Br,r);
+    // asymptotics
+    if (in_asymptotic_region){
+        dalpha_dt = dalpha_dt*aw1 + aw2*0.;
+        dbetaR_dt = dbetaR_dt*aw1 + aw2*0.;
+    }
     double d_gamma_rr_dr = dadr/X2 - 2.*a*dXdr/X3;
     double dt_shift[3] = {x/safe_r*dbetaR_dt,
                           y/safe_r*dbetaR_dt,
                           z/safe_r*dbetaR_dt};
+
+
 
 
 
@@ -2144,7 +2181,7 @@ template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cel
     // SCALAR FIELD
     //////////////////////////
 
-    vars.phi += m_1d_sol.get_value_interp_o4(m_1d_sol.phi,r)*root_kappa;
+    double temp_phi = m_1d_sol.get_value_interp_o4(m_1d_sol.phi,r)*root_kappa;
 
 
 
@@ -2152,6 +2189,15 @@ template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cel
     double dphi_dr = m_1d_sol.get_deriv_interp_o4(m_1d_sol.phi,r)*root_kappa;
     // minus sign from different convention to Fabrizio
     double default_pi = -m_1d_sol.get_value_interp_o4(m_1d_sol.pi,r)*root_kappa;
+
+    // asymptotics
+    if (in_asymptotic_region){
+        temp_phi = aw1*temp_phi + aw2*0;
+        dphi_dr = aw1*dphi_dr + aw2*0;
+        default_pi = aw1*default_pi + aw2*0;
+    }
+
+    //
     double dphi_dx = dphi_dr * dr_dx;
     double dphi_dy = dphi_dr * dr_dy;
 
@@ -2160,6 +2206,7 @@ template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cel
     dphi_dt = - alpha * default_pi + beta_U[0]*dphi_dx + beta_U[1]*dphi_dy;
 
     // boost done implicitly here
+    vars.phi += temp_phi;
     vars.Pi += (1./boost_lapse) * (
                     - (c_ + boosted_beta_U[0] * s_) * dphi_dt
                     + (s_ + boosted_beta_U[0] * c_) * dphi_dx
@@ -2185,6 +2232,10 @@ template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cel
 
     // loading the upstairs E^r then lower with gamma_rr = a/(X*X)
     double EUr = m_1d_sol.get_value_interp_o4(m_1d_sol.Er,r)*root_kappa;
+    //asymptotics
+    if (in_asymptotic_region){
+        EUr = aw1*EUr + aw2*0.;
+    }
 
     // proxy equation
     // EUr = sqrt(0.00002758) * r * r * exp(-r*r) / 0.3678 ;
@@ -2300,8 +2351,14 @@ template <class data_t> void EMSBH_read::compute_boost2(Cell<data_t> current_cel
     // fabrizio's mixed conformal traceless curvature, then make downstairs
     // THIS ASSUMES DIAGONAL METRIC
     // angular parts must give trace 0
-    double AaaUL = m_1d_sol.get_value_interp(m_1d_sol.Aa,r);
-    double inputK = m_1d_sol.get_value_interp(m_1d_sol.K,r);
+    double AaaUL = m_1d_sol.get_value_interp_o4(m_1d_sol.Aa,r);
+    double inputK = m_1d_sol.get_value_interp_o4(m_1d_sol.K,r);
+    //asymptotics
+    if (in_asymptotic_region){
+        AaaUL = aw1*AaaUL + aw2*0;
+        inputK = aw1*inputK + aw2*0.;
+    }
+
     double Kij_polar[3][3] = {{0., 0., 0.}, {0., 0., 0.}, {0., 0., 0.}};
     // this is NOT the conformal A, its simply (K_ij-K gamma_ij/3)
     // becuase i believe that Fabrizios trK is automatically zero
@@ -3023,6 +3080,7 @@ template <class data_t> void EMSBH_read::compute_boost3(Cell<data_t> current_cel
 
 
 // Compute the value of first bh the initial vars on the grid
+// pure (maybe not perfect) reissner nordstrom
 template <class data_t> void EMSBH_read::compute_boost4(Cell<data_t> current_cell
                                                           , double a_sign) const
 {

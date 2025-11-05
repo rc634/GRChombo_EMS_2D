@@ -22,6 +22,7 @@ void EMSBHSolution_read::main(std::string a_data_path)
     gridpoints = r.size();
     L = r[gridpoints-1]-r[0];
     dx = L/( (double) (gridpoints-1));
+    r_join = r[gridpoints-10]; // minus 10 points from the end to be safe
 
 
 }
@@ -192,7 +193,13 @@ double EMSBHSolution_read::get_value_interp_o4(const std::vector<double>& in,
                                                           const double r_) const
 {
   // index of 3nd (out of 5) gridpoints used for interpolation
-  double frac = (r_-r[0])/dx;
+  double r_temp = r_;
+  if (r_ > this->r_join) r_temp = this->r_join;
+
+  // tanh, maps infinite range input radius to finite range output radius
+  // r_temp = 1000*tanh(r_/1000);
+
+  double frac = (r_temp-r[0])/dx;
   int iter = (int)round(frac);
   double a = frac - iter;
 
@@ -233,7 +240,7 @@ double EMSBHSolution_read::get_value_interp_o4(const std::vector<double>& in,
     f1 = 7.*f[0] - 21.*f[1] + 35.*f[2] - 35.*f[3] + 21.*f[4] - 7.*f[5] + f[6];
     f2 = in[0];
   }
-  else 
+  else
   {
     f1 = in[iter-2];
     f2 = in[iter-1];
@@ -244,7 +251,7 @@ double EMSBHSolution_read::get_value_interp_o4(const std::vector<double>& in,
 
     if (iter > gridpoints - 3)
     {
-        std::cout << "Requested Value outside initial data domain!"
+        std::cout << "Requested Value outside initial data domain! In V4:wq"
                   << std::endl;
     }
 
@@ -270,7 +277,13 @@ double EMSBHSolution_read::get_deriv_interp_o4(const std::vector<double>& in,
                                                           const double r_) const
 {
     // index of 3nd (out of 5) gridpoints used for interpolation
-    double frac = (r_-r[0])/dx;
+    double r_temp = r_;
+    if (r_ > this->r_join) r_temp = this->r_join;
+
+    // tanh, maps infinite range input radius to finite range output radius
+    // r_temp = 1000*tanh(r_/1000);
+
+    double frac = (r_temp-r[0])/dx;
     int iter = (int)round(frac);
     double a = frac - iter;
 
@@ -324,7 +337,7 @@ double EMSBHSolution_read::get_deriv_interp_o4(const std::vector<double>& in,
 
     if (iter > gridpoints - 3)
     {
-        std::cout << "Requested Value outside initial data domain!"
+        std::cout << "Requested Value outside initial data domain! In D4"
                   << std::endl;
     }
 

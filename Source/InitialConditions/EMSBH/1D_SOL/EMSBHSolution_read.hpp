@@ -15,6 +15,7 @@ public:
 
     int gridpoints;
     double dx, L;
+    double r_join; // radius of joining the tail solution onto the main solution
 
     std::vector<double> r;
     std::vector<double> phi;
