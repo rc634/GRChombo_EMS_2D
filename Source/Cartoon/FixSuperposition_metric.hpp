@@ -147,9 +147,9 @@ class FixSuperposition_metric
         current_cell.store_vars(K, c_K);
 
         // // precollapsed lapse
-        // current_cell.store_vars(sqrt(chi),c_lapse);
+        current_cell.store_vars(sqrt(chi),c_lapse);
         // // raw lapse
-        current_cell.store_vars(lapse, c_lapse);
+        // current_cell.store_vars(lapse, c_lapse);
 
         // conformal factor
         current_cell.store_vars(chi, c_chi);
