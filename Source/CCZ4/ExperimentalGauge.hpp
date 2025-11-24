@@ -82,7 +82,7 @@ class ExperimentalGauge
                           const vars_t<data_t> &advec) const
     {
         rhs.lapse = 1. * advec.lapse
-                     - 2. * vars.lapse * (vars.K - 2 * vars.Theta); // there was a 1.7 coeff here
+                     - 1.8 * vars.lapse * (vars.K - 2 * vars.Theta); // there was a 1.7 coeff here
         FOR(i)
         {
             rhs.shift[i] = 1. * advec.shift[i] +
