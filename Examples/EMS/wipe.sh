@@ -1,1 +1,1 @@
-rm plt/* chk/* *dat pout* ah_data/coords/*
+rm plt/* chk/* *dat pout* ah_data/*

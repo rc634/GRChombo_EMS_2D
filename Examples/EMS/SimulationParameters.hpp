@@ -85,18 +85,19 @@ public:
                 mass_extraction_params.num_points_theta, 4);
         pp.load("mass_extraction_center",
                 mass_extraction_params.extraction_center,
-                {0.0, 0.0});
+                {0.5 * L, 0.0});
 
 
         // Apparent Horizon stuff
         #ifdef USE_AHFINDER
-        pp.load("AH_initial_guess", AH_initial_guess, emsbh_params.bh_mass*0.5);
+        pp.load("AH_initial_guess", AH_initial_guess, 0.5); // ~M/2
         pp.load("AH_num_horizons", AH_num_horizons, 0);
+        pp.load("AH_level_to_run", AH_level_to_run, 0);
         pp.load("AH_expect_merger", AH_expect_merger, 0);
         pp.load("horizon_centre_1", horizon_centre_1,
-                {0.5 * L, 0.5 * L});
+                {0.5 * L, 0.0});
         pp.load("horizon_centre_2", horizon_centre_2,
-                {0.5 * L, 0.5 * L});
+                {0.5 * L, 0.0});
         #endif
 
         // Mass extraction
@@ -115,7 +116,7 @@ public:
                 mass_extraction_params.num_points_theta, 4);
         pp.load("mass_extraction_center",
                 mass_extraction_params.extraction_center,
-                {0.5 * L, 0.5 * L});
+                {0.5 * L, 0.0});
 
         // Weyl extraction
         pp.load("activate_gw_extraction", activate_weyl_extraction, 0);
@@ -179,6 +180,7 @@ public:
     double AH_initial_guess;
     int AH_num_horizons;
     int AH_expect_merger;
+    int AH_level_to_run;
     std::array<double, CH_SPACEDIM> horizon_centre_1;
     std::array<double, CH_SPACEDIM> horizon_centre_2;
 #endif
