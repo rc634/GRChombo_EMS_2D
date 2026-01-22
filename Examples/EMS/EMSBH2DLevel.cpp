@@ -284,22 +284,22 @@ void EMSBH2DLevel::specificPostTimeStep()
         m_bh_amr.m_interpolator->refresh();
 
 
-        // Hack: if avg radius of found AH is negative, we reset initial guess
-        double current_avg_AH_radius =  m_bh_amr.m_ah_finder.get(0)->get_ave_F();
-        if (current_avg_AH_radius < 0.)
-        {
-            m_bh_amr.m_ah_finder.get(0)->solver.reset_initial_guess();
-            pout() << "AHFinder: resetting initial guess as avg radius is "
-                      "negative."
-                   << endl;
-        }
-        else if (current_avg_AH_radius > 13.)
-        {
-            m_bh_amr.m_ah_finder.get(0)->solver.reset_initial_guess();
-            pout() << "AHFinder: resetting initial guess as avg radius is "
-                      "too large."
-                   << endl;
-        }
+        // // Hack: if avg radius of found AH is negative, we reset initial guess
+        // double current_avg_AH_radius =  m_bh_amr.m_ah_finder.get(0)->get_ave_F();
+        // if (current_avg_AH_radius < 0.)
+        // {
+        //     m_bh_amr.m_ah_finder.get(0)->solver.reset_initial_guess();
+        //     pout() << "AHFinder: resetting initial guess as avg radius is "
+        //               "negative."
+        //            << endl;
+        // }
+        // else if (current_avg_AH_radius > 13.)
+        // {
+        //     m_bh_amr.m_ah_finder.get(0)->solver.reset_initial_guess();
+        //     pout() << "AHFinder: resetting initial guess as avg radius is "
+        //               "too large."
+        //            << endl;
+        // }
         m_bh_amr.m_ah_finder.solve(m_dt, m_time, m_restart_time);
         pout() << "Finished AHFINDER!" << std::endl;
 

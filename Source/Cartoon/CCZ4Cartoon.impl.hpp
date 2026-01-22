@@ -326,8 +326,10 @@ rhs.Aww = advec.Aww + Adot_TF_ww +
                     ((vars.K - 2 * vars.Theta) - 2 * h_UU_ww * Aww_TF) -
                     two_over_gr_spacedim * divshift_w);
 
+// DANGER, ROBINS HACKED CCZ4!
+data_t f_of_alpha = vars.lapse / (0.005 + vars.lapse);
 #ifdef COVARIANTZ4
-data_t kappa1_lapse = this->m_params.kappa1;
+data_t kappa1_lapse = this->m_params.kappa1 * f_of_alpha;
 #else
 data_t kappa1_lapse = this->m_params.kappa1 * vars.lapse;
 #endif
