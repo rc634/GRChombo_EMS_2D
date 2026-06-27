@@ -125,6 +125,12 @@ double EMSBHSolution_read::get_value_interp(const std::vector<double>& in,
     // a = +- 1/2 is the nearest gridpoints
     double a = ((r_-r[0]) / dx) - floor((r_-r[0]) / dx) - 0.5;
 
+    if (iter > gridpoints - 3)
+    {
+        // std::cout << "Requested Value outside initial data domain!" << std::endl;
+        iter = gridpoints - 3; // clamp: return last-point value, avoid OOB
+    }
+
     double interpolated_value = 0, f1, f2, f3, f4;
 
     // conditionl/ternary imposing zero gradeint at r=0
@@ -132,12 +138,6 @@ double EMSBHSolution_read::get_value_interp(const std::vector<double>& in,
     f2 = in[iter];
     f3 = in[iter + 1];
     f4 = in[iter + 2];
-
-    if (iter > gridpoints - 3)
-    {
-        std::cout << "Requested Value outside initial data domain!"
-                  << std::endl;
-    }
 
     // do the cubic spline, from mathematica script written by Robin
     // (rc634@cam.ac.uk)
@@ -162,6 +162,12 @@ double EMSBHSolution_read::get_deriv_interp(const std::vector<double>& in,
     // a = +- 1/2 is the nearest gridpoints
     double a = (r_ / dx) - floor(r_ / dx) - 0.5;
 
+    if (iter > gridpoints - 3)
+    {
+        // std::cout << "Requested Value outside initial data domain!" << std::endl;
+        iter = gridpoints - 3; // clamp: fields are asymptotically flat here
+    }
+
     double interpolated_value = 0, f1, f2, f3, f4;
 
     // conditionl/ternary imposing zero gradeint at r=0
@@ -169,12 +175,6 @@ double EMSBHSolution_read::get_deriv_interp(const std::vector<double>& in,
     f2 = in[iter];
     f3 = in[iter + 1];
     f4 = in[iter + 2];
-
-    if (iter > gridpoints - 3)
-    {
-        std::cout << "Requested Value outside initial data domain!"
-                  << std::endl;
-    }
 
     // do the cubic spline (for gradient now), from mathematica script written
     // by Robin (rc634@cam.ac.uk)
@@ -251,8 +251,7 @@ double EMSBHSolution_read::get_value_interp_o4(const std::vector<double>& in,
 
     if (iter > gridpoints - 3)
     {
-        std::cout << "Requested Value outside initial data domain! In V4:wq"
-                  << std::endl;
+        // std::cout << "Requested Value outside initial data domain! In V4" << std::endl;
     }
 
     // do the quatric spline (for gradient now), from mathematica script written
@@ -337,8 +336,7 @@ double EMSBHSolution_read::get_deriv_interp_o4(const std::vector<double>& in,
 
     if (iter > gridpoints - 3)
     {
-        std::cout << "Requested Value outside initial data domain! In D4"
-                  << std::endl;
+        // std::cout << "Requested Value outside initial data domain! In D4" << std::endl;
     }
 
     // do the quartic spline (for gradient now), from mathematica script written
@@ -366,17 +364,17 @@ double EMSBHSolution_read::get_value_interp_o1(const std::vector<double>& in,
     double a = frac - iter;
 
 
+    if (iter > gridpoints - 3)
+    {
+        // std::cout << "Requested Value outside initial data domain!" << std::endl;
+        iter = gridpoints - 3;
+    }
+
     double interpolated_value = 0, f1, f2;
 
     // imposes symmetric boundary conditions over r=0
     f1 = in[iter];
     f2 = in[iter + 1];
-
-    if (iter > gridpoints - 3)
-    {
-        std::cout << "Requested Value outside initial data domain!"
-                  << std::endl;
-    }
 
     // do the quatric spline (for gradient now), from mathematica script written
     // by Robin
@@ -395,19 +393,18 @@ double EMSBHSolution_read::get_deriv_interp_o1(const std::vector<double>& in,
     int iter = (int)round(frac);
     double a = frac - iter;
 
+    if (iter > gridpoints - 3)
+    {
+        // std::cout << "Requested Value outside initial data domain!" << std::endl;
+        iter = gridpoints - 3;
+    }
+
     double interpolated_value = 0, f1, f2, f3;
 
     // imposes symmetric boundary conditions over r=0
     f1 = in[iter];
     f2 = in[iter + 1];
     f3 = in[iter + 2];
-
-
-    if (iter > gridpoints - 3)
-    {
-        std::cout << "Requested Value outside initial data domain!"
-                  << std::endl;
-    }
 
     // do the quartic spline (for gradient now), from mathematica script written
     // by Robin

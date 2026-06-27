@@ -592,7 +592,6 @@ class RHSurf
             const auto sv = s_unit_vec(ii);
             sum += coupling * (m_Ex[ii] * sv[0] + m_Ey[ii] * sv[1]) * dA(ii);
         }
-        // double because half surf
         return sum / std::sqrt(2. * M_PI);
     }
 
