@@ -709,8 +709,8 @@ data_t LieBetaBz = advec.Bz + ooy * vars.Bz * vars.shift[iy];
 /////////////////////////////////
 // scalar field vars
 rhs.phi = advec.phi - vars.lapse * vars.Pi;
-rhs.Pi = advec.Pi + vars.lapse * (  vars.K * vars.Pi  - lap_phi
-                                   - 0.5 * vars.lapse * fprime * coupling * FF)
+rhs.Pi = advec.Pi + vars.lapse * (vars.K * vars.Pi - lap_phi
+                                  - 0.5 * fprime * coupling * FF)
                   - Dphi_dot_Dlapse;
 
 

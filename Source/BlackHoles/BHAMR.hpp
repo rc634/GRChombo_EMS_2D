@@ -8,6 +8,7 @@
 
 #include "GRAMR.hpp"
 #include "PunctureTracker.hpp"
+#include "RHUnion.hpp"
 
 #ifdef USE_AHFINDER
 #include "AHFinder.hpp"
@@ -22,6 +23,7 @@ class BHAMR : public GRAMR
 {
   public:
     PunctureTracker m_puncture_tracker;
+    RHUnion m_rh_union;
 
 #ifdef USE_AHFINDER
     AHFinder<> m_ah_finder;
@@ -33,6 +35,7 @@ class BHAMR : public GRAMR
     {
         GRAMR::set_interpolator(a_interpolator);
         m_puncture_tracker.set_interpolator(a_interpolator);
+        m_rh_union.set_interpolator(a_interpolator);
 #ifdef USE_AHFINDER
         m_ah_finder.set_interpolator(a_interpolator);
 #endif

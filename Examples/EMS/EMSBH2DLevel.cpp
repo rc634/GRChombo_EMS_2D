@@ -308,6 +308,32 @@ void EMSBH2DLevel::specificPostTimeStep()
 
 
     //////////////////////////////////////////////
+    // RH Horizon Finder
+    //////////////////////////////////////////////
+    if (m_p.m_RH_activate)
+    {
+        if (m_bh_amr.m_rh_union.m_surfaces.empty())
+        {
+            m_bh_amr.m_rh_union.setup(m_p.m_RH_num_horizons,
+                                       m_p.m_RH_initial_radii,
+                                       m_p.m_RH_initial_centre,
+                                       m_p.m_RH_num_points,
+                                       m_p.m_RH_level,
+                                       m_p.m_RH_time_step_freq,
+                                       m_p.m_RH_newton_crit,
+                                       m_p.m_RH_chase_speeds,
+                                       m_p.m_RH_start_times,
+                                       m_restart_time);
+            m_bh_amr.m_rh_union.set_coupling_params(
+                m_p.coupling_function_params.alpha,
+                m_p.coupling_function_params.f0,
+                m_p.coupling_function_params.f1,
+                m_p.coupling_function_params.f2);
+        }
+        m_bh_amr.m_rh_union.update(m_time, m_level);
+    }
+
+    //////////////////////////////////////////////
     // Gravitational Wave Extraction
     //////////////////////////////////////////////
     if (m_p.activate_extraction == 1 &&

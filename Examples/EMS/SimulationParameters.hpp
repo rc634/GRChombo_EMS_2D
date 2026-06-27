@@ -131,6 +131,18 @@ public:
         pp.load("activate_mq_extraction", activate_mq_extraction, 0);
 
 
+        // RH horizon finder
+        pp.load("RH_activate", m_RH_activate, false);
+        pp.load("RH_num_horizons", m_RH_num_horizons, 0);
+        pp.load("RH_initial_radii",    m_RH_initial_radii,    m_RH_num_horizons, 1.0);
+        pp.load("RH_initial_centre",   m_RH_initial_centre,   m_RH_num_horizons, 0.0);
+        pp.load("RH_num_points",       m_RH_num_points,       m_RH_num_horizons, 100);
+        pp.load("RH_level",            m_RH_level,            m_RH_num_horizons, 0);
+        pp.load("RH_time_step_freq",   m_RH_time_step_freq,   m_RH_num_horizons, 1);
+        pp.load("RH_newton_crit",      m_RH_newton_crit,      m_RH_num_horizons, 0.0);
+        pp.load("RH_chase_speeds",     m_RH_chase_speeds,     m_RH_num_horizons, 1.0);
+        pp.load("RH_start_times",      m_RH_start_times,      m_RH_num_horizons, 0.0);
+
         // Variables for outputting inf-norm
         pp.load("num_vars_inf_norm", num_vars_inf_norm, 0);
         pp.load("vars_inf_norm", vars_inf_norm, num_vars_inf_norm, 0);
@@ -175,6 +187,18 @@ public:
     // Vars for outputting inf-norms
     int num_vars_inf_norm;
     std::vector<int> vars_inf_norm;
+
+    // RH horizon finder
+    bool m_RH_activate;
+    int m_RH_num_horizons;
+    std::vector<double> m_RH_initial_radii;
+    std::vector<double> m_RH_initial_centre; // x-coord per surface (y=0 by cartoon symmetry)
+    std::vector<int>    m_RH_num_points;
+    std::vector<int>    m_RH_level;
+    std::vector<int>    m_RH_time_step_freq;
+    std::vector<double> m_RH_newton_crit;
+    std::vector<double> m_RH_chase_speeds;
+    std::vector<double> m_RH_start_times;
 
 #ifdef USE_AHFINDER
     double AH_initial_guess;
